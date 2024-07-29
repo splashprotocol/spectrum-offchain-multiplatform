@@ -758,6 +758,10 @@ mod tests {
                     script_hash: ScriptHash::from([0u8; 28]),
                     marginal_cost: ExUnits::empty(),
                 },
+                const_fn_pool_fee_switch_v2: DeployedScriptInfo {
+                    script_hash: ScriptHash::from([0u8; 28]),
+                    marginal_cost: ExUnits::empty(),
+                },
                 const_fn_pool_fee_switch_bidir_fee: DeployedScriptInfo {
                     script_hash: ScriptHash::from([0u8; 28]),
                     marginal_cost: ExUnits::empty(),
@@ -775,6 +779,10 @@ mod tests {
                     marginal_cost: ExUnits::empty(),
                 },
                 balance_fn_pool_v1: DeployedScriptInfo {
+                    script_hash: ScriptHash::from([0u8; 28]),
+                    marginal_cost: ExUnits::empty(),
+                },
+                balance_fn_pool_v2: DeployedScriptInfo {
                     script_hash: ScriptHash::from([0u8; 28]),
                     marginal_cost: ExUnits::empty(),
                 },
@@ -807,14 +815,6 @@ mod tests {
                     marginal_cost: ExUnits::empty(),
                 },
                 stable_fn_pool_t2t_redeem: DeployedScriptInfo {
-                    script_hash: ScriptHash::from([0u8; 28]),
-                    marginal_cost: ExUnits::empty(),
-                },
-                balance_fn_pool_v2: DeployedScriptInfo {
-                    script_hash: ScriptHash::from([0u8; 28]),
-                    marginal_cost: ExUnits::empty(),
-                },
-                const_fn_pool_fee_switch_v2: DeployedScriptInfo {
                     script_hash: ScriptHash::from([0u8; 28]),
                     marginal_cost: ExUnits::empty(),
                 },

@@ -17,7 +17,7 @@ pub fn calc_stable_swap<X, Y>(
     base_asset: TaggedAssetClass<Base>,
     base_amount: TaggedAmount<Base>,
     an2n: u64,
-) -> TaggedAmount<Quote> {
+) -> Option<TaggedAmount<Quote>> {
     let an2n_calc = U512::from(an2n);
     let (base_reserves, base_mult, quote_reserves, quote_mult) = if asset_x.untag() == base_asset.untag() {
         (reserves_x.untag(), x_mult, reserves_y.untag(), y_mult)
@@ -26,36 +26,32 @@ pub fn calc_stable_swap<X, Y>(
     };
 
     let quote_calc = U512::from(quote_reserves * quote_mult);
-    let base_initial = U512::from(base_reserves * base_mult.clone());
+    let base_initial = U512::from(base_reserves * base_mult);
     let base_calc = base_initial + U512::from(base_amount.untag() * base_mult);
 
     let s = base_calc;
     let p = base_calc;
 
     let nn = U512::from(N_TRADABLE_ASSETS.pow(N_TRADABLE_ASSETS as u32));
-    let ann = an2n_calc / nn;
+    let ann = an2n_calc.checked_div(nn)?;
 
-    println!("base_initial: {}", base_initial);
-    println!("quote_calc: {}", quote_calc);
+    let d = calculate_invariant(base_initial, quote_calc, an2n_calc)?;
+    let b = s + d.checked_div(ann)?;
 
-    let d = calculate_invariant(&base_initial, &quote_calc, &an2n_calc);
-    let b = s + d / ann;
-    let dn1 = vec![d; usize::try_from(N_TRADABLE_ASSETS + 1).unwrap()]
-        .iter()
-        .copied()
-        .reduce(|a, b| a * b)
-        .unwrap();
-    let c = dn1 / nn / p / ann;
+    let dn1 = d.pow(U512::from(N_TRADABLE_ASSETS + 1));
 
-    let unit = U512::from(1);
+    let c = dn1.checked_div(nn * p * ann)?;
 
-    let asset_to_initial = quote_calc.clone();
-    let mut asset_to = quote_calc.clone();
-    let mut asset_to_previous: U512 = U512::from(0);
+    let unit = U512::one();
+
+    let asset_to_initial = quote_calc;
+    let mut asset_to = quote_calc;
+    let mut asset_to_previous;
     let mut abs_err = unit;
     while abs_err >= unit {
         asset_to_previous = asset_to;
-        asset_to = (asset_to_previous * asset_to_previous + c) / (U512::from(2) * asset_to_previous + b - d);
+        asset_to = (asset_to_previous * asset_to_previous + c)
+            .checked_div(U512::from(2) * asset_to_previous + b - d)?;
         abs_err = if asset_to > asset_to_previous {
             asset_to - asset_to_previous
         } else {
@@ -63,18 +59,18 @@ pub fn calc_stable_swap<X, Y>(
         };
     }
 
-    let d_new = calculate_invariant(&base_calc, &asset_to, &an2n_calc);
-    let d_after = if { d_new > d } { d_new.clone() } else { d.clone() };
+    let d_new = calculate_invariant(base_calc, asset_to, an2n_calc)?;
+    let d_after = if d_new > d { d_new } else { d };
 
     let mut valid_inv = check_exact_invariant(
-        &U512::from(quote_mult),
-        &base_initial,
-        &asset_to_initial,
-        &base_calc,
-        &asset_to,
-        &d_after,
-        &nn,
-        &an2n_calc,
+        U512::from(quote_mult),
+        base_initial,
+        asset_to_initial,
+        base_calc,
+        asset_to,
+        d_after,
+        nn,
+        an2n_calc,
     );
     let mut counter = 0;
 
@@ -82,14 +78,14 @@ pub fn calc_stable_swap<X, Y>(
         while !valid_inv && counter < 255 {
             asset_to += unit;
             valid_inv = check_exact_invariant(
-                &U512::from(quote_mult),
-                &base_initial,
-                &asset_to_initial,
-                &base_calc,
-                &asset_to,
-                &d_after,
-                &nn,
-                &an2n_calc,
+                U512::from(quote_mult),
+                base_initial,
+                asset_to_initial,
+                base_calc,
+                asset_to,
+                d_after,
+                nn,
+                an2n_calc,
             );
             counter += 1;
         }
@@ -97,66 +93,65 @@ pub fn calc_stable_swap<X, Y>(
 
     assert_eq!(
         check_exact_invariant(
-            &U512::from(quote_mult),
-            &base_initial,
-            &asset_to_initial,
-            &base_calc,
-            &asset_to,
-            &d_after,
-            &nn,
-            &an2n_calc
+            U512::from(quote_mult),
+            base_initial,
+            asset_to_initial,
+            base_calc,
+            asset_to,
+            d_after,
+            nn,
+            an2n_calc
         ),
         true
     );
 
-    println!("asset_to_initial: {}", asset_to_initial);
-    println!("asset_to: {}", asset_to);
-
     let quote_amount_pure_delta = asset_to_initial - asset_to;
 
-    TaggedAmount::new((quote_amount_pure_delta / quote_mult).as_u64())
+    Some(TaggedAmount::new(
+        quote_amount_pure_delta.checked_div(quote_mult.into())?.as_u64(),
+    ))
 }
 
 pub fn calculate_invariant_error_sgn_from_totals(
-    ann: &U512,
-    nn_total_prod_calc: &U512,
-    ann_total_sum_calc: &U512,
-    d: &U512,
-) -> bool {
-    let inv_right = *d * *ann
-        + vec![*d; usize::try_from(N_TRADABLE_ASSETS + 1).unwrap()]
-            .iter()
-            .copied()
-            .reduce(|a, b| a * b)
-            .unwrap()
-            / *nn_total_prod_calc;
-    let inv_left = *ann_total_sum_calc + *d;
-    inv_right >= inv_left
+    ann: U512,
+    nn_total_prod_calc: U512,
+    ann_total_sum_calc: U512,
+    d: U512,
+) -> Option<bool> {
+    let inv_right = d * ann
+        + d.pow(U512::from(N_TRADABLE_ASSETS + 1))
+            .checked_div(nn_total_prod_calc)?;
+
+    let inv_left = ann_total_sum_calc + d;
+    Some(inv_right >= inv_left)
 }
 
-pub fn calculate_invariant_error_sgn(x_calc: &U512, y_calc: &U512, d: &U512, nn: U512, ann: &U512) -> bool {
+pub fn calculate_invariant_error_sgn(
+    x_calc: U512,
+    y_calc: U512,
+    d: U512,
+    nn: U512,
+    ann: U512,
+) -> Option<bool> {
     let nn_total_prod_calc = nn * x_calc * y_calc;
-    let ann_total_sum_calc = *ann * (x_calc + y_calc);
-    calculate_invariant_error_sgn_from_totals(ann, &nn_total_prod_calc, &ann_total_sum_calc, d)
+    let ann_total_sum_calc = ann * (x_calc + y_calc);
+    calculate_invariant_error_sgn_from_totals(ann, nn_total_prod_calc, ann_total_sum_calc, d)
 }
 
 pub fn check_exact_invariant(
-    quote_mult: &U512,
-    tradable_base_before: &U512,
-    tradable_quote_before: &U512,
-    tradable_base_after: &U512,
-    tradable_quote_after: &U512,
-    d: &U512,
-    nn: &U512,
-    an2n: &U512,
+    quote_mult: U512,
+    tradable_base_before: U512,
+    tradable_quote_before: U512,
+    tradable_base_after: U512,
+    tradable_quote_after: U512,
+    d: U512,
+    nn: U512,
+    an2n: U512,
 ) -> bool {
     let max_swap_err = U512::from(MAX_SWAP_ERROR);
     let an2n_nn = an2n - nn;
-    let dn1 = vec![*d; usize::try_from(N_TRADABLE_ASSETS + 1).unwrap()]
-        .iter()
-        .copied()
-        .reduce(|a, b| a * b)
-        .unwrap();
+    let dn1 = d.pow(U512::from(N_TRADABLE_ASSETS + 1));
+
     let total_prod_calc_before = tradable_base_before * tradable_quote_before;
 
     let alpha_before = an2n_nn * total_prod_calc_before;
@@ -175,7 +170,7 @@ pub fn check_exact_invariant(
         && dn1 + alpha_after_shifted * d >= beta_after_shifted
 }
 
-pub fn calculate_context_values_list(prev_state: StablePoolT2T, new_state: StablePoolT2T) -> U512 {
+pub fn calculate_context_values_list(prev_state: StablePoolT2T, new_state: StablePoolT2T) -> Option<U512> {
     let nn = U512::from(4);
     let unit = U512::from(1);
     let an2n_calc = U512::from(prev_state.an2n);
@@ -197,7 +192,7 @@ pub fn calculate_context_values_list(prev_state: StablePoolT2T, new_state: Stabl
                 tradable_reserves_y1,
                 tradable_reserves_y0 - tradable_reserves_y1,
                 y_mult,
-                U512::from(prev_state.lp_fee_y.numer().clone()),
+                U512::from(*prev_state.lp_fee_y.numer()),
             )
         } else {
             (
@@ -207,52 +202,52 @@ pub fn calculate_context_values_list(prev_state: StablePoolT2T, new_state: Stabl
                 tradable_reserves_x1,
                 tradable_reserves_x0 - tradable_reserves_x1,
                 x_mult,
-                U512::from(prev_state.lp_fee_x.numer().clone()),
+                U512::from(*prev_state.lp_fee_x.numer()),
             )
         };
-    let denom = U512::from(prev_state.lp_fee_y.denom().clone()); // normal denom parsing todo!()
+    let denom = U512::from(*prev_state.lp_fee_y.denom());
 
-    let quote_no_lp_fees = quote - quote_delta * quote_lp_fee / (denom - quote_lp_fee) - unit;
+    let quote_no_lp_fees = quote - (quote_delta * quote_lp_fee).checked_div(denom - quote_lp_fee)? - unit;
     let quote_after_calc = quote_no_lp_fees * quote_mult;
 
-    let inv_before = calculate_invariant(&base_init, &quote_init, &an2n_calc);
-    let inv_after = calculate_invariant(&base_after_calc, &quote_after_calc, &an2n_calc);
+    let inv_before = calculate_invariant(base_init, quote_init, an2n_calc)?;
+    let inv_after = calculate_invariant(base_after_calc, quote_after_calc, an2n_calc)?;
 
-    let mut inv = inv_before.clone();
+    let mut inv = inv_before;
 
-    let mut counter = 0;
+    let counter = 0;
     let diff = unit + inv_after - inv_before;
     let mut valid_inv = check_exact_invariant(
-        &quote_mult,
-        &base_init,
-        &quote_init,
-        &base_after_calc,
-        &quote_after_calc,
-        &inv,
-        &nn,
-        &an2n_calc,
+        quote_mult,
+        base_init,
+        quote_init,
+        base_after_calc,
+        quote_after_calc,
+        inv,
+        nn,
+        an2n_calc,
     );
 
     while !valid_inv && counter < diff.as_u64() {
         inv += unit;
         valid_inv = check_exact_invariant(
-            &quote_mult,
-            &base_init,
-            &quote_init,
-            &base_after_calc,
-            &quote_after_calc,
-            &inv,
-            &nn,
-            &an2n_calc,
+            quote_mult,
+            base_init,
+            quote_init,
+            base_after_calc,
+            quote_after_calc,
+            inv,
+            nn,
+            an2n_calc,
         )
     }
-    inv
+    Some(inv)
 }
-pub fn calculate_invariant(x_calc: &U512, y_calc: &U512, an2n: &U512) -> U512 {
+pub fn calculate_invariant(x_calc: U512, y_calc: U512, an2n: U512) -> Option<U512> {
     let nn = U512::from(N_TRADABLE_ASSETS.pow(N_TRADABLE_ASSETS as u32));
-    let unit = U512::from(1);
+    let unit = U512::one();
     let n_calc = U512::from(N_TRADABLE_ASSETS);
-    let ann = an2n / nn;
+    let ann = an2n.checked_div(nn)?;
     let s = x_calc + y_calc;
     let p = x_calc * y_calc;
 
@@ -260,13 +255,10 @@ pub fn calculate_invariant(x_calc: &U512, y_calc: &U512, an2n: &U512) -> U512 {
     let mut abs_err = unit;
     while abs_err >= unit {
         let d_previous = d;
-        let dn1 = vec![d_previous; usize::try_from(N_TRADABLE_ASSETS + 1).unwrap()]
-            .iter()
-            .copied()
-            .reduce(|a, b| a * b)
-            .unwrap();
-        let d_p = dn1 / nn / p;
-        d = (ann * s + n_calc * d_p) * d_previous / ((ann - unit) * d_previous + (n_calc + unit) * d_p);
+        let dn1 = d_previous.pow(U512::from(N_TRADABLE_ASSETS + 1));
+        let d_p = dn1.checked_div(nn * p)?;
+        d = ((ann * s + n_calc * d_p) * d_previous)
+            .checked_div((ann - unit) * d_previous + (n_calc + unit) * d_p)?;
         abs_err = if d > d_previous {
             d - d_previous
         } else {
@@ -274,16 +266,16 @@ pub fn calculate_invariant(x_calc: &U512, y_calc: &U512, an2n: &U512) -> U512 {
         };
     }
 
-    let mut inv_err = calculate_invariant_error_sgn(x_calc, y_calc, &d, nn, &ann);
+    let mut inv_err = calculate_invariant_error_sgn(x_calc, y_calc, d, nn, ann)?;
 
-    let inv_err_upper = calculate_invariant_error_sgn(x_calc, y_calc, &(d + unit), nn, &ann);
+    let inv_err_upper = calculate_invariant_error_sgn(x_calc, y_calc, d + unit, nn, ann)?;
     if !(inv_err && !inv_err_upper) {
         while !inv_err {
             d += unit;
-            inv_err = calculate_invariant_error_sgn(x_calc, y_calc, &d, nn, &ann)
+            inv_err = calculate_invariant_error_sgn(x_calc, y_calc, d, nn, ann)?
         }
     }
-    return d;
+    return Some(d);
 }
 
 #[cfg(test)]
@@ -319,17 +311,22 @@ mod test {
         let an2n = a * 16;
         let reserves_x = reserves_x;
         let reserves_y = reserves_y;
-        let (multiplier_x, multiplier_y) = if (x_decimals > y_decimals) {
+        let (multiplier_x, multiplier_y) = if x_decimals > y_decimals {
             (1, 10_u32.pow(x_decimals - y_decimals))
-        } else if (x_decimals < y_decimals) {
+        } else if x_decimals < y_decimals {
             (10_u32.pow(y_decimals - x_decimals), 1)
         } else {
             (1, 1)
         };
-        let inv_before = calculate_invariant(
-            &U512::from((reserves_x - treasury_x) * multiplier_x as u64),
-            &U512::from((reserves_y - treasury_y) * multiplier_x as u64),
-            &U512::from(an2n),
+        let x_calc = U512::from((reserves_x - treasury_x) * multiplier_x as u64);
+        let y_calc = U512::from((reserves_y - treasury_y) * multiplier_x as u64);
+        let an2n_u512 = U512::from(an2n);
+        let inv_before = calculate_invariant(x_calc, y_calc, an2n_u512).expect(
+            format!(
+                "Invariant calculated incorrectly. calculate_invariant({}, {}, {})",
+                x_calc, y_calc, an2n_u512,
+            )
+            .as_str(),
         );
         let liquidity = MAX_LQ_CAP - inv_before.as_u64();
 
@@ -408,14 +405,14 @@ mod test {
         let an2n = U512::from(300 * 16);
         assert_eq!(
             check_exact_invariant(
-                &U512::from(1),
-                &tradable_base_before,
-                &tradable_quote_before,
-                &tradable_base_after,
-                &tradable_quote_after_no_last_lp_fees,
-                &d,
-                &nn,
-                &an2n
+                U512::from(1),
+                tradable_base_before,
+                tradable_quote_before,
+                tradable_base_after,
+                tradable_quote_after_no_last_lp_fees,
+                d,
+                nn,
+                an2n
             ),
             true
         );
@@ -436,7 +433,8 @@ mod test {
             TaggedAssetClass::new(Native),
             base_amount,
             an2n,
-        );
+        )
+        .expect("Quote value calculated successfully");
         assert_eq!(quote_final.untag(), 8790136)
     }
 
@@ -454,7 +452,8 @@ mod test {
 
         let prev = gen_ada_token_pool(reserves_x0, 0, reserves_y0, 0, lp_fee, lp_fee, tr_fee, 0, 0, a);
         let new = gen_ada_token_pool(reserves_x1, 0, reserves_y1, 0, lp_fee, lp_fee, tr_fee, 0, 100, a);
-        let inv = calculate_context_values_list(prev, new);
+        let inv =
+            calculate_context_values_list(prev, new).expect("Context values list calculated incorrectly");
         assert_eq!(U512::from(200000000), inv);
 
         let lp_fee = 20000u64;
@@ -491,7 +490,8 @@ mod test {
             88088,
             a,
         );
-        let inv = calculate_context_values_list(prev, new);
+        let inv =
+            calculate_context_values_list(prev, new).expect("Context values list calculated incorrectly");
         assert_eq!(U512::from(510000000), inv);
     }
 }
