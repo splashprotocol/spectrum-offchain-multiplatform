@@ -1,7 +1,5 @@
-use std::fmt::Debug;
-use std::ops::Mul;
-
 use bloom_offchain::execution_engine::liquidity_book::core::{Next, Unit};
+use bloom_offchain::execution_engine::liquidity_book::market_maker::AvailableLiquidity;
 use bloom_offchain::execution_engine::liquidity_book::market_maker::{
     AbsoluteReserves, Excess, MakerBehavior, MarketMaker, PoolQuality, SpotPrice,
 };
@@ -28,6 +26,8 @@ use spectrum_cardano_lib::AssetClass::Native;
 use spectrum_cardano_lib::{TaggedAmount, TaggedAssetClass};
 use spectrum_offchain::data::{Has, Stable};
 use spectrum_offchain::ledger::{IntoLedger, TryFromLedger};
+use std::fmt::Debug;
+use std::ops::Mul;
 use void::Void;
 
 use crate::constants::{FEE_DEN, MAX_LQ_CAP};
@@ -547,6 +547,9 @@ impl MarketMaker for StablePoolT2T {
             }
         }
     }
+    fn available_liquidity_on_side(&self, worst_price: OnSide<AbsolutePrice>) -> Option<AvailableLiquidity> {
+        None
+    }
 
     fn is_active(&self) -> bool {
         // balance pools do not support lq bound, so
@@ -664,15 +667,14 @@ impl ApplyOrder<ClassicalOnChainRedeem> for StablePoolT2T {
 
 #[cfg(test)]
 mod tests {
+    use bloom_offchain::execution_engine::liquidity_book::core::Next;
+    use bloom_offchain::execution_engine::liquidity_book::market_maker::MakerBehavior;
+    use bloom_offchain::execution_engine::liquidity_book::side::OnSide;
     use cml_chain::plutus::PlutusData;
     use cml_chain::Deserialize;
     use cml_crypto::{Ed25519KeyHash, ScriptHash, TransactionHash};
     use num_rational::Ratio;
     use primitive_types::U512;
-
-    use bloom_offchain::execution_engine::liquidity_book::core::Next;
-    use bloom_offchain::execution_engine::liquidity_book::market_maker::MakerBehavior;
-    use bloom_offchain::execution_engine::liquidity_book::side::OnSide;
     use spectrum_cardano_lib::ex_units::ExUnits;
     use spectrum_cardano_lib::types::TryFromPData;
     use spectrum_cardano_lib::{AssetClass, AssetName, OutputRef, TaggedAmount, TaggedAssetClass};
