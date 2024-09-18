@@ -14,7 +14,7 @@ use cml_crypto::{RawBytesEncoding, TransactionHash};
 use derivative::Derivative;
 use derive_more::{From, Into};
 use num::{CheckedAdd, CheckedSub};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::plutus_data::{ConstrPlutusDataExtension, PlutusDataExtension};
 use crate::types::TryFromPData;
@@ -35,7 +35,9 @@ pub mod types;
 pub mod value;
 
 /// Asset name bytes padded to 32-byte fixed array and tupled with the len of the original asset name.
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, derive_more::From)]
+#[derive(
+    Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, derive_more::From, Serialize, Deserialize,
+)]
 pub struct AssetName(u8, [u8; 32]);
 
 impl AssetName {
@@ -119,7 +121,7 @@ impl TryFrom<Vec<u8>> for AssetName {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Deserialize, Serialize)]
 #[serde(try_from = "String")]
 pub struct OutputRef(TransactionHash, u64);
 
@@ -185,7 +187,7 @@ impl TryFrom<&str> for OutputRef {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct Token(pub PolicyId, pub AssetName);
 
 impl From<Token> for [u8; 60] {
@@ -306,7 +308,7 @@ impl<T> TryFromPData for TaggedAssetClass<T> {
 }
 
 #[repr(transparent)]
-#[derive(Derivative)]
+#[derive(Derivative, Serialize, Deserialize)]
 #[derivative(Debug(bound = ""), Copy(bound = ""), Clone(bound = ""), Eq(bound = ""))]
 pub struct TaggedAmount<T>(u64, PhantomData<T>);
 
