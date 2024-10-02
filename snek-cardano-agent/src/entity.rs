@@ -13,7 +13,7 @@ use spectrum_offchain::ledger::TryFromLedger;
 use spectrum_offchain_cardano::creds::OperatorCred;
 use spectrum_offchain_cardano::data::degen_quadratic_pool::DegenQuadraticPool;
 use spectrum_offchain_cardano::data::deposit::DepositOrderValidation;
-use spectrum_offchain_cardano::data::order::ClassicalAMMOrder;
+use spectrum_offchain_cardano::data::order::Order;
 use spectrum_offchain_cardano::data::pair::PairId;
 use spectrum_offchain_cardano::data::pool::PoolValidation;
 use spectrum_offchain_cardano::data::redeem::RedeemOrderValidation;
@@ -29,7 +29,7 @@ use spectrum_offchain_cardano::handler_context::{
 
 #[repr(transparent)]
 #[derive(Debug, Clone)]
-pub struct AtomicCardanoEntity(pub Bundled<ClassicalAMMOrder, FinalizedTxOut>);
+pub struct AtomicCardanoEntity(pub Bundled<Order, FinalizedTxOut>);
 
 impl SpecializedOrder for AtomicCardanoEntity {
     type TOrderId = OutputRef;
@@ -63,7 +63,7 @@ where
         + Has<RedeemOrderValidation>,
 {
     fn try_from_ledger(repr: &TransactionOutput, ctx: &C) -> Option<Self> {
-        ClassicalAMMOrder::try_from_ledger(repr, ctx).map(|inner| {
+        Order::try_from_ledger(repr, ctx).map(|inner| {
             Self(Bundled(
                 inner,
                 FinalizedTxOut::new(repr.clone(), ctx.select::<OutputRef>()),

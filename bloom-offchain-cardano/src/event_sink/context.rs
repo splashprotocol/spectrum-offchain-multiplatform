@@ -7,13 +7,7 @@ use spectrum_offchain_cardano::creds::OperatorCred;
 use spectrum_offchain_cardano::data::deposit::DepositOrderValidation;
 use spectrum_offchain_cardano::data::pool::PoolValidation;
 use spectrum_offchain_cardano::data::redeem::RedeemOrderValidation;
-use spectrum_offchain_cardano::deployment::ProtocolValidator::{
-    BalanceFnPoolDeposit, BalanceFnPoolRedeem, BalanceFnPoolV1, BalanceFnPoolV2, ConstFnFeeSwitchPoolDeposit,
-    ConstFnFeeSwitchPoolRedeem, ConstFnFeeSwitchPoolSwap, ConstFnPoolDeposit, ConstFnPoolFeeSwitch,
-    ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolRedeem, ConstFnPoolSwap, ConstFnPoolV1,
-    ConstFnPoolV2, LimitOrderV1, LimitOrderWitnessV1, StableFnPoolT2T, StableFnPoolT2TDeposit,
-    StableFnPoolT2TRedeem,
-};
+use spectrum_offchain_cardano::deployment::ProtocolValidator::{BalanceFnPoolDeposit, BalanceFnPoolRedeem, BalanceFnPoolV1, BalanceFnPoolV2, ConstFnFeeSwitchPoolDeposit, ConstFnFeeSwitchPoolRedeem, ConstFnFeeSwitchPoolSwap, ConstFnPoolDeposit, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolRedeem, ConstFnPoolSwap, ConstFnPoolV1, ConstFnPoolV2, LimitOrderV1, LimitOrderWitnessV1, RoyaltyPoolV1, RoyaltyPoolV1Deposit, RoyaltyPoolV1Redeem, RoyaltyPoolV1RoyaltyWithdraw, StableFnPoolT2T, StableFnPoolT2TDeposit, StableFnPoolT2TRedeem};
 use spectrum_offchain_cardano::deployment::{DeployedScriptInfo, ProtocolScriptHashes};
 use spectrum_offchain_cardano::handler_context::{ConsumedIdentifiers, ConsumedInputs, ProducedIdentifiers};
 
@@ -264,6 +258,38 @@ impl<I: Copy> Has<DeployedScriptInfo<{ StableFnPoolT2TRedeem as u8 }>> for Handl
         &self,
     ) -> DeployedScriptInfo<{ StableFnPoolT2TRedeem as u8 }> {
         self.scripts.stable_fn_pool_t2t_redeem.clone()
+    }
+}
+
+impl<I: Copy> Has<DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }>> for HandlerContext<I> {
+    fn select<U: IsEqual<DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }>>>(
+        &self,
+    ) -> DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }> {
+        self.scripts.royalty_pool_v1.clone()
+    }
+}
+
+impl<I: Copy> Has<DeployedScriptInfo<{ RoyaltyPoolV1Deposit as u8 }>> for HandlerContext<I> {
+    fn select<U: IsEqual<DeployedScriptInfo<{ RoyaltyPoolV1Deposit as u8 }>>>(
+        &self,
+    ) -> DeployedScriptInfo<{ RoyaltyPoolV1Deposit as u8 }> {
+        self.scripts.royalty_pool_deposit.clone()
+    }
+}
+
+impl<I: Copy> Has<DeployedScriptInfo<{ RoyaltyPoolV1Redeem as u8 }>> for HandlerContext<I> {
+    fn select<U: IsEqual<DeployedScriptInfo<{ RoyaltyPoolV1Redeem as u8 }>>>(
+        &self,
+    ) -> DeployedScriptInfo<{ RoyaltyPoolV1Redeem as u8 }> {
+        self.scripts.royalty_pool_redeem.clone()
+    }
+}
+
+impl<I: Copy> Has<DeployedScriptInfo<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }>> for HandlerContext<I> {
+    fn select<U: IsEqual<DeployedScriptInfo<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }>>>(
+        &self,
+    ) -> DeployedScriptInfo<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }> {
+        self.scripts.royalty_pool_withdraw.clone()
     }
 }
 

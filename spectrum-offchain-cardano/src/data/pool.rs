@@ -193,6 +193,7 @@ pub enum CFMMPoolAction {
     Deposit,
     Redeem,
     Destroy,
+    RoyaltyWithdraw,
 }
 
 impl CFMMPoolAction {
@@ -202,6 +203,7 @@ impl CFMMPoolAction {
             CFMMPoolAction::Deposit => PlutusData::Integer(BigInteger::from(0)),
             CFMMPoolAction::Redeem => PlutusData::Integer(BigInteger::from(1)),
             CFMMPoolAction::Destroy => PlutusData::Integer(BigInteger::from(3)),
+            CFMMPoolAction::RoyaltyWithdraw => PlutusData::Integer(BigInteger::from(4)),
         }
     }
 }

@@ -6,13 +6,7 @@ use spectrum_cardano_lib::NetworkId;
 use spectrum_offchain::backlog::BacklogCapacity;
 use spectrum_offchain::data::Has;
 use spectrum_offchain_cardano::creds::{OperatorCred, OperatorRewardAddress};
-use spectrum_offchain_cardano::deployment::ProtocolValidator::{
-    BalanceFnPoolDeposit, BalanceFnPoolRedeem, BalanceFnPoolV1, BalanceFnPoolV2, ConstFnFeeSwitchPoolDeposit,
-    ConstFnFeeSwitchPoolRedeem, ConstFnFeeSwitchPoolSwap, ConstFnPoolDeposit, ConstFnPoolFeeSwitch,
-    ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolRedeem, ConstFnPoolSwap, ConstFnPoolV1,
-    ConstFnPoolV2, GridOrderNative, LimitOrderV1, LimitOrderWitnessV1, StableFnPoolT2T,
-    StableFnPoolT2TDeposit, StableFnPoolT2TRedeem,
-};
+use spectrum_offchain_cardano::deployment::ProtocolValidator::{BalanceFnPoolDeposit, BalanceFnPoolRedeem, BalanceFnPoolV1, BalanceFnPoolV2, ConstFnFeeSwitchPoolDeposit, ConstFnFeeSwitchPoolRedeem, ConstFnFeeSwitchPoolSwap, ConstFnPoolDeposit, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolRedeem, ConstFnPoolSwap, ConstFnPoolV1, ConstFnPoolV2, GridOrderNative, LimitOrderV1, LimitOrderWitnessV1, RoyaltyPoolV1, RoyaltyPoolV1Deposit, RoyaltyPoolV1Redeem, RoyaltyPoolV1RoyaltyWithdraw, StableFnPoolT2T, StableFnPoolT2TDeposit, StableFnPoolT2TRedeem};
 use spectrum_offchain_cardano::deployment::{DeployedValidator, ProtocolDeployment};
 use type_equalities::IsEqual;
 
@@ -253,5 +247,37 @@ impl Has<DeployedValidator<{ GridOrderNative as u8 }>> for ExecutionContext {
         &self,
     ) -> DeployedValidator<{ GridOrderNative as u8 }> {
         self.deployment.grid_order_native.clone()
+    }
+}
+
+impl Has<DeployedValidator<{ RoyaltyPoolV1 as u8 }>> for ExecutionContext {
+    fn select<U: IsEqual<DeployedValidator<{ RoyaltyPoolV1 as u8 }>>>(
+        &self,
+    ) -> DeployedValidator<{ RoyaltyPoolV1 as u8 }> {
+        self.deployment.royalty_pool.clone()
+    }
+}
+
+impl Has<DeployedValidator<{ RoyaltyPoolV1Deposit as u8 }>> for ExecutionContext {
+    fn select<U: IsEqual<DeployedValidator<{ RoyaltyPoolV1Deposit as u8 }>>>(
+        &self,
+    ) -> DeployedValidator<{ RoyaltyPoolV1Deposit as u8 }> {
+        self.deployment.royalty_pool_deposit.clone()
+    }
+}
+
+impl Has<DeployedValidator<{ RoyaltyPoolV1Redeem as u8 }>> for ExecutionContext {
+    fn select<U: IsEqual<DeployedValidator<{ RoyaltyPoolV1Redeem as u8 }>>>(
+        &self,
+    ) -> DeployedValidator<{ RoyaltyPoolV1Redeem as u8 }> {
+        self.deployment.royalty_pool_redeem.clone()
+    }
+}
+
+impl Has<DeployedValidator<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }>> for ExecutionContext {
+    fn select<U: IsEqual<DeployedValidator<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }>>>(
+        &self,
+    ) -> DeployedValidator<{ RoyaltyPoolV1RoyaltyWithdraw as u8 }> {
+        self.deployment.royalty_pool_royalty_withdraw.clone()
     }
 }

@@ -41,7 +41,7 @@ use crate::data::deposit::ClassicalOnChainDeposit;
 use crate::data::fee_switch_bidirectional_fee::FeeSwitchBidirectionalPoolConfig;
 use crate::data::fee_switch_pool::FeeSwitchPoolConfig;
 use crate::data::limit_swap::ClassicalOnChainLimitSwap;
-use crate::data::operation_output::{DepositOutput, RedeemOutput, SwapOutput};
+use crate::data::operation_output::{DepositOutput, RedeemOutput, RoyaltyWithdrawOutput, SwapOutput};
 use crate::data::order::{Base, ClassicalOrder, PoolNft, Quote};
 use crate::data::pair::order_canonical;
 use crate::data::pool::{
@@ -49,6 +49,7 @@ use crate::data::pool::{
 };
 use crate::data::redeem::ClassicalOnChainRedeem;
 use crate::data::royalty_pool::{RoyaltyPoolConfig, RoyaltyPoolDatumMapping, ROYALTY_DATUM_MAPPING};
+use crate::data::royalty_withdraw::OnChainRoyaltyWithdraw;
 use crate::data::PoolId;
 use crate::deployment::ProtocolValidator::{
     ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2,
@@ -940,6 +941,47 @@ impl ApplyOrder<ClassicalOnChainRedeem> for ConstFnPool {
             }
             None => Err(ApplyOrderError::incompatible(redeem)),
         }
+    }
+}
+
+impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
+    type Result = RoyaltyWithdrawOutput;
+
+    fn apply_order(
+        mut self,
+        royalty_withdraw: OnChainRoyaltyWithdraw,
+    ) -> Result<(Self, RoyaltyWithdrawOutput), ApplyOrderError<OnChainRoyaltyWithdraw>> {
+        let order = royalty_withdraw.order;
+        unimplemented!()
+        // match self.shares_amount(order.token_lq_amount) {
+        //     Some((x_amount, y_amount)) => {
+        //         self.reserves_x = self
+        //             .reserves_x
+        //             .checked_sub(&x_amount)
+        //             .ok_or(ApplyOrderError::incompatible(redeem.clone()))?;
+        //         self.reserves_y = self
+        //             .reserves_y
+        //             .checked_sub(&y_amount)
+        //             .ok_or(ApplyOrderError::incompatible(redeem.clone()))?;
+        //         self.liquidity = self
+        //             .liquidity
+        //             .checked_sub(&order.token_lq_amount)
+        //             .ok_or(ApplyOrderError::incompatible(redeem))?;
+        //
+        //         let redeem_output = RedeemOutput {
+        //             token_x_asset: order.token_x,
+        //             token_x_amount: x_amount,
+        //             token_y_asset: order.token_y,
+        //             token_y_amount: y_amount,
+        //             ada_residue: order.collateral_ada,
+        //             redeemer_pkh: order.reward_pkh,
+        //             redeemer_stake_pkh: order.reward_stake_pkh,
+        //         };
+        //
+        //         Ok((self, redeem_output))
+        //     }
+        //     None => Err(ApplyOrderError::incompatible(redeem)),
+        // }
     }
 }
 

@@ -194,3 +194,57 @@ where
         })
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct RoyaltyWithdrawOutput {
+    pub token_x_asset: TaggedAssetClass<Rx>,
+    pub token_x_amount: TaggedAmount<Rx>,
+    pub token_y_asset: TaggedAssetClass<Ry>,
+    pub token_y_amount: TaggedAmount<Ry>,
+    pub ada_residue: Coin,
+    pub redeemer_pkh: Ed25519KeyHash,
+}
+
+impl<Ctx> IntoLedger<TransactionOutput, Ctx> for RoyaltyWithdrawOutput
+where
+    Ctx: Has<NetworkId>,
+{
+    fn into_ledger(self, ctx: Ctx) -> TransactionOutput {
+        let addr = EnterpriseAddress::new(ctx.get().into(), StakeCredential::new_pub_key(self.redeemer_pkh))
+            .to_address();
+
+        let mut ma = MultiAsset::new();
+
+        let ada_from_charge_pair = match (self.token_x_asset.is_native(), self.token_y_asset.is_native()) {
+            (true, false) => {
+                let Token(policy, name) = self.token_y_asset.untag().into_token().unwrap();
+                ma.safe_set(policy, name.into(), self.token_y_amount.untag());
+                self.token_x_amount.untag()
+            }
+            (false, true) => {
+                let Token(policy, name) = self.token_x_asset.untag().into_token().unwrap();
+                ma.safe_set(policy, name.into(), self.token_x_amount.untag());
+                self.token_y_amount.untag()
+            }
+            (false, false) => {
+                let Token(policy_x, name_x) = self.token_x_asset.untag().into_token().unwrap();
+                ma.safe_set(policy_x, name_x.into(), self.token_x_amount.untag());
+                let Token(policy_y, name_y) = self.token_y_asset.untag().into_token().unwrap();
+                ma.safe_set(policy_y, name_y.into(), self.token_y_amount.untag());
+                0
+            }
+            // todo: basically this is unreachable point. Throw error?
+            (true, true) => self.token_x_amount.untag() + self.token_y_amount.untag(),
+        };
+
+        let ada = self.ada_residue + ada_from_charge_pair;
+
+        TransactionOutput::new_conway_format_tx_out(ConwayFormatTxOut {
+            address: addr,
+            amount: Value::new(ada, ma),
+            datum_option: None,
+            script_reference: None,
+            encodings: None,
+        })
+    }
+}
