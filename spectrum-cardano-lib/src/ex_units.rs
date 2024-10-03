@@ -4,7 +4,19 @@ use derive_more::{Add, AddAssign, Sub, SubAssign};
 use std::ops::Add;
 
 #[derive(
-    serde::Deserialize, Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Add, Sub, AddAssign, SubAssign,
+    serde::Serialize,
+    serde::Deserialize,
+    Debug,
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Add,
+    Sub,
+    AddAssign,
+    SubAssign,
 )]
 pub struct ExUnits {
     pub mem: u64,
