@@ -392,7 +392,8 @@ pub struct ProtocolDeployment {
     pub royalty_pool: DeployedValidator<{ ProtocolValidator::RoyaltyPoolV1 as u8 }>,
     pub royalty_pool_deposit: DeployedValidator<{ ProtocolValidator::RoyaltyPoolV1Deposit as u8 }>,
     pub royalty_pool_redeem: DeployedValidator<{ ProtocolValidator::RoyaltyPoolV1Redeem as u8 }>,
-    pub royalty_pool_royalty_withdraw: DeployedValidator<{ ProtocolValidator::RoyaltyPoolV1RoyaltyWithdraw as u8 }>,
+    pub royalty_pool_royalty_withdraw:
+        DeployedValidator<{ ProtocolValidator::RoyaltyPoolV1RoyaltyWithdraw as u8 }>,
 }
 
 impl ProtocolDeployment {
@@ -463,9 +464,15 @@ impl ProtocolDeployment {
             )
             .await,
             royalty_pool: DeployedValidator::unsafe_pull(validators.royalty_pool, explorer).await,
-            royalty_pool_deposit: DeployedValidator::unsafe_pull(validators.royalty_pool_deposit, explorer).await,
-            royalty_pool_redeem: DeployedValidator::unsafe_pull(validators.royalty_pool_redeem, explorer).await,
-            royalty_pool_royalty_withdraw: DeployedValidator::unsafe_pull(validators.royalty_pool_royalty_withdraw, explorer).await,
+            royalty_pool_deposit: DeployedValidator::unsafe_pull(validators.royalty_pool_deposit, explorer)
+                .await,
+            royalty_pool_redeem: DeployedValidator::unsafe_pull(validators.royalty_pool_redeem, explorer)
+                .await,
+            royalty_pool_royalty_withdraw: DeployedValidator::unsafe_pull(
+                validators.royalty_pool_royalty_withdraw,
+                explorer,
+            )
+            .await,
         }
     }
 }

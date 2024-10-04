@@ -20,6 +20,8 @@ pub struct RoyaltyPoolConfig {
     pub treasury_y: u64,
     pub royalty_x: u64,
     pub royalty_y: u64,
+    pub royalty_pub_key_hash_256: Vec<u8>,
+    pub royalty_nonce: u64,
 }
 
 pub struct RoyaltyPoolDatumMapping {
@@ -34,6 +36,8 @@ pub struct RoyaltyPoolDatumMapping {
     pub treasury_y: usize,
     pub royalty_x: usize,
     pub royalty_y: usize,
+    pub royalty_pub_key_hash256: usize,
+    pub royalty_nonce: usize,
 }
 
 pub const ROYALTY_DATUM_MAPPING: RoyaltyPoolDatumMapping = RoyaltyPoolDatumMapping {
@@ -48,6 +52,8 @@ pub const ROYALTY_DATUM_MAPPING: RoyaltyPoolDatumMapping = RoyaltyPoolDatumMappi
     treasury_y: 8,
     royalty_x: 9,
     royalty_y: 10,
+    royalty_pub_key_hash256: 13,
+    royalty_nonce: 14,
 };
 
 impl TryFromPData for RoyaltyPoolConfig {
@@ -69,6 +75,10 @@ impl TryFromPData for RoyaltyPoolConfig {
             treasury_y: cpd.take_field(ROYALTY_DATUM_MAPPING.treasury_y)?.into_u64()?,
             royalty_x: cpd.take_field(ROYALTY_DATUM_MAPPING.royalty_x)?.into_u64()?,
             royalty_y: cpd.take_field(ROYALTY_DATUM_MAPPING.royalty_y)?.into_u64()?,
+            royalty_pub_key_hash_256: cpd
+                .take_field(ROYALTY_DATUM_MAPPING.royalty_pub_key_hash256)?
+                .into_bytes()?,
+            royalty_nonce: cpd.take_field(ROYALTY_DATUM_MAPPING.royalty_nonce)?.into_u64()?,
         })
     }
 }

@@ -1,27 +1,25 @@
-use crate::data::deposit::{ClassicalOnChainDeposit, Deposit, DepositOrderValidation};
-use crate::data::order::{ClassicalOrder, OrderType};
-use crate::data::pool::{CFMMPoolAction, Lq, Rx, Ry};
-use crate::data::redeem::ClassicalOnChainRedeem;
+use crate::data::deposit::DepositOrderValidation;
+use crate::data::order::ClassicalOrder;
+use crate::data::pool::{CFMMPoolAction, Rx, Ry};
 use crate::data::{OnChainOrderId, PoolId};
-use crate::deployment::ProtocolValidator::{
-    BalanceFnPoolDeposit, BalanceFnPoolRedeem, ConstFnFeeSwitchPoolDeposit, ConstFnFeeSwitchPoolRedeem,
-    ConstFnPoolDeposit, ConstFnPoolRedeem, RoyaltyPoolV1RoyaltyWithdraw, StableFnPoolT2TDeposit,
-    StableFnPoolT2TRedeem,
-};
+use crate::deployment::ProtocolValidator::RoyaltyPoolV1RoyaltyWithdraw;
 use crate::deployment::{
     test_address, DeployedScriptInfo, DeployedValidator, DeployedValidatorErased, RequiresValidator,
 };
 use cml_chain::transaction::TransactionOutput;
+use cml_crypto::{Ed25519KeyHash, Ed25519Signature, PublicKey};
 use spectrum_cardano_lib::{OutputRef, TaggedAmount};
 use spectrum_offchain::data::Has;
 use spectrum_offchain::ledger::TryFromLedger;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct RoyaltyWithdraw {
     pub pool_nft: PoolId,
     pub withdraw_royalty_x: TaggedAmount<Rx>,
     pub withdraw_royalty_y: TaggedAmount<Ry>,
-    pub signature: [u8; 32],
+    pub royalty_pub_key_hash: Ed25519KeyHash,
+    pub royalty_pub_key: PublicKey,
+    pub signature: Ed25519Signature,
 }
 
 pub type OnChainRoyaltyWithdraw = ClassicalOrder<OnChainOrderId, RoyaltyWithdraw>;

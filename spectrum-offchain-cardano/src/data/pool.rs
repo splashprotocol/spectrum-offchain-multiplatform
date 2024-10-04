@@ -59,11 +59,16 @@ pub enum ApplyOrderError<Order> {
     Slippage(Slippage<Order>),
     LowBatcherFee(LowerBatcherFee<Order>),
     Incompatible(Incompatible<Order>),
+    VerificationFailed(VerificationFailed<Order>),
 }
 
 impl<Order> ApplyOrderError<Order> {
     pub fn incompatible(order: Order) -> Self {
         Self::Incompatible(Incompatible { order })
+    }
+
+    pub fn verification_failed(order: Order) -> Self {
+        Self::VerificationFailed(VerificationFailed { order })
     }
 
     pub fn map<F, T1>(self, f: F) -> ApplyOrderError<T1>
@@ -76,6 +81,9 @@ impl<Order> ApplyOrderError<Order> {
                 ApplyOrderError::LowBatcherFee(low_batcher_fee.map(f))
             }
             ApplyOrderError::Incompatible(math_error) => ApplyOrderError::Incompatible(math_error.map(f)),
+            ApplyOrderError::VerificationFailed(verification_error) => {
+                ApplyOrderError::VerificationFailed(verification_error.map(f))
+            }
         }
     }
 
@@ -106,6 +114,7 @@ impl<Order> From<ApplyOrderError<Order>> for RunOrderError<Order> {
             ApplyOrderError::Slippage(slippage) => slippage.into(),
             ApplyOrderError::LowBatcherFee(low_batcher_fee) => low_batcher_fee.into(),
             ApplyOrderError::Incompatible(math_error) => math_error.into(),
+            ApplyOrderError::VerificationFailed(verifiaction_failed) => verifiaction_failed.into(),
         }
     }
 }
@@ -185,6 +194,26 @@ impl<T> Incompatible<T> {
 impl<Order> From<Incompatible<Order>> for RunOrderError<Order> {
     fn from(value: Incompatible<Order>) -> Self {
         RunOrderError::NonFatal("Math error".to_string(), value.order)
+    }
+}
+
+#[derive(Debug)]
+pub struct VerificationFailed<Order> {
+    pub order: Order,
+}
+
+impl<T> VerificationFailed<T> {
+    pub fn map<F, T1>(self, f: F) -> VerificationFailed<T1>
+    where
+        F: FnOnce(T) -> T1,
+    {
+        VerificationFailed { order: f(self.order) }
+    }
+}
+
+impl<Order> From<VerificationFailed<Order>> for RunOrderError<Order> {
+    fn from(value: VerificationFailed<Order>) -> Self {
+        RunOrderError::Fatal("Verification failed".to_string(), value.order)
     }
 }
 

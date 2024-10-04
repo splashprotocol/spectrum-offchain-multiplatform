@@ -9,7 +9,8 @@ use cml_chain::plutus::{ConstrPlutusData, PlutusData};
 use cml_chain::transaction::{ConwayFormatTxOut, DatumOption, TransactionOutput};
 use cml_chain::utils::BigInteger;
 use cml_chain::Value;
-use cml_multi_era::babbage::BabbageTransactionOutput;
+use cml_core::serialization::{RawBytesEncoding, ToBytes};
+use cml_crypto::blake2b256;
 use num_rational::Ratio;
 use num_traits::ToPrimitive;
 use num_traits::{CheckedAdd, CheckedSub};
@@ -149,7 +150,7 @@ impl ConstFnPoolVer {
                 .script_hash
                 == *this_hash
             {
-                return Some(ConstFnPoolVer::RoyaltyPoolV1);
+                return Some(RoyaltyPoolV1);
             }
         };
         None
@@ -174,9 +175,12 @@ pub struct ConstFnPool {
     pub royalty_x: TaggedAmount<Rx>,
     pub royalty_y: TaggedAmount<Ry>,
     pub lq_lower_bound: TaggedAmount<Rx>,
+    // derived by blake256, not 244. Plutarch issue
+    pub royalty_pub_key_hash: [u8; 32],
     pub ver: ConstFnPoolVer,
     pub marginal_cost: ExUnits,
     pub bounds: PoolValidation,
+    pub royalty_nonce: u64,
 }
 
 impl ConstFnPool {
@@ -589,9 +593,11 @@ where
                         royalty_x: TaggedAmount::new(0),
                         royalty_y: TaggedAmount::new(0),
                         lq_lower_bound: conf.lq_lower_bound,
+                        royalty_pub_key_hash: [0; 32],
                         ver: pool_ver,
                         marginal_cost,
                         bounds,
+                        royalty_nonce: 0,
                     });
                 }
                 ConstFnPoolVer::FeeSwitch | ConstFnPoolVer::FeeSwitchV2 => {
@@ -624,9 +630,11 @@ where
                             royalty_x: TaggedAmount::new(0),
                             royalty_y: TaggedAmount::new(0),
                             lq_lower_bound: conf.lq_lower_bound,
+                            royalty_pub_key_hash: [0; 32],
                             ver: pool_ver,
                             marginal_cost,
                             bounds,
+                            royalty_nonce: 0,
                         });
                     }
                 }
@@ -660,9 +668,11 @@ where
                             royalty_x: TaggedAmount::new(0),
                             royalty_y: TaggedAmount::new(0),
                             lq_lower_bound: conf.lq_lower_bound,
+                            royalty_pub_key_hash: [0; 32],
                             ver: pool_ver,
                             marginal_cost,
                             bounds,
+                            royalty_nonce: 0,
                         });
                     }
                 }
@@ -696,9 +706,11 @@ where
                             royalty_x: TaggedAmount::new(conf.royalty_x),
                             royalty_y: TaggedAmount::new(conf.royalty_y),
                             lq_lower_bound: TaggedAmount::new(0),
+                            royalty_pub_key_hash: conf.royalty_pub_key_hash_256.try_into().ok()?,
                             ver: pool_ver,
                             marginal_cost,
                             bounds,
+                            royalty_nonce: conf.royalty_nonce,
                         });
                     }
                 }
@@ -951,37 +963,63 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
         mut self,
         royalty_withdraw: OnChainRoyaltyWithdraw,
     ) -> Result<(Self, RoyaltyWithdrawOutput), ApplyOrderError<OnChainRoyaltyWithdraw>> {
-        let order = royalty_withdraw.order;
-        unimplemented!()
-        // match self.shares_amount(order.token_lq_amount) {
-        //     Some((x_amount, y_amount)) => {
-        //         self.reserves_x = self
-        //             .reserves_x
-        //             .checked_sub(&x_amount)
-        //             .ok_or(ApplyOrderError::incompatible(redeem.clone()))?;
-        //         self.reserves_y = self
-        //             .reserves_y
-        //             .checked_sub(&y_amount)
-        //             .ok_or(ApplyOrderError::incompatible(redeem.clone()))?;
-        //         self.liquidity = self
-        //             .liquidity
-        //             .checked_sub(&order.token_lq_amount)
-        //             .ok_or(ApplyOrderError::incompatible(redeem))?;
-        //
-        //         let redeem_output = RedeemOutput {
-        //             token_x_asset: order.token_x,
-        //             token_x_amount: x_amount,
-        //             token_y_asset: order.token_y,
-        //             token_y_amount: y_amount,
-        //             ada_residue: order.collateral_ada,
-        //             redeemer_pkh: order.reward_pkh,
-        //             redeemer_stake_pkh: order.reward_stake_pkh,
-        //         };
-        //
-        //         Ok((self, redeem_output))
-        //     }
-        //     None => Err(ApplyOrderError::incompatible(redeem)),
-        // }
+        let order = royalty_withdraw.order.clone();
+        let mut to_sign = vec![];
+        let Token(nft_lq, name_nft) = self.id.into();
+        to_sign.append(&mut nft_lq.to_raw_bytes().to_vec());
+        to_sign.append(&mut name_nft.as_bytes().to_vec());
+        to_sign.append(&mut royalty_withdraw.order.withdraw_royalty_x.untag().to_bytes());
+        to_sign.append(&mut royalty_withdraw.order.withdraw_royalty_y.untag().to_bytes());
+        to_sign.append(
+            &mut royalty_withdraw
+                .order
+                .royalty_pub_key_hash
+                .to_raw_bytes()
+                .to_vec(),
+        );
+        to_sign.append(&mut royalty_withdraw.order.royalty_pub_key.to_raw_bytes().to_vec());
+        to_sign.append(&mut self.royalty_nonce.to_bytes());
+
+        let signature_is_correct = order.royalty_pub_key.verify(&to_sign, &order.signature);
+        let royalty_address_is_correct =
+            blake2b256(order.royalty_pub_key.to_raw_bytes()) == self.royalty_pub_key_hash;
+
+        if !signature_is_correct || !royalty_address_is_correct {
+            return Err(ApplyOrderError::verification_failed(royalty_withdraw));
+        }
+
+        self.royalty_x = self
+            .royalty_x
+            .checked_sub(&order.withdraw_royalty_x)
+            .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        self.royalty_y = self
+            .royalty_y
+            .checked_sub(&order.withdraw_royalty_y)
+            .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        self.reserves_x = self
+            .reserves_x
+            .checked_sub(&order.withdraw_royalty_x)
+            .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        self.reserves_y = self
+            .reserves_y
+            .checked_sub(&order.withdraw_royalty_y)
+            .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        self.royalty_nonce += 1;
+
+        let royalty_output = RoyaltyWithdrawOutput {
+            token_x_asset: self.asset_x,
+            token_x_amount: order.withdraw_royalty_x,
+            token_y_asset: self.asset_y,
+            token_y_amount: order.withdraw_royalty_y,
+            ada_residue: 0,
+            redeemer_pkh: order.royalty_pub_key_hash,
+        };
+
+        Ok((self, royalty_output))
     }
 }
 
