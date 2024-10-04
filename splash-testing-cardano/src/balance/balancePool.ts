@@ -1,4 +1,3 @@
-import { BalanceContract } from "../../plutus.ts";
 import { getConfig } from "../config.ts";
 import { getLucid } from "../lucid.ts";
 import { Asset, BuiltValidators, asUnit } from "../types.ts";
@@ -76,97 +75,97 @@ export type PoolConfig = {
     invariant: number
 }
 
-const stringifyBigIntReviewer = (_: any, value: any) =>
+export const stringifyBigIntReviewer = (_: any, value: any) =>
   typeof value === 'bigint'
     ? { value: value.toString(), _bigint: true }
     : value;
 
-async function main() {
-
-    const lucid = await getLucid();
-    await setupWallet(lucid);
-
-    const conf = await getConfig<BuiltValidators>();
-
-    const utxos = (await lucid.wallet.getUtxos());
-
-    const boxWithToken = await getUtxoWithToken(utxos, encodedTestB);
-    const boxWithAda   = await getUtxoWithAda(utxos)
-
-    if (!boxWithToken) {
-        console.log("No box with token!");
-        return
-    }
-
-    const nftInfo = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, nftTNBase16, `${nftEmission}`);
-    const lqInfo  = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, lqTNBase16, `${lqEmission}`);
-
-    console.log(`nft info: ${nftInfo}`);
-
-    console.log(`address: ${await lucid.wallet.address()}`);
-
-    const poolAddress = lucid.utils.credentialToAddress(
-        { hash: conf.validators!.balancePool.hash, type: 'Script' },
-      );
-
-    const nftMintingPolicy: MintingPolicy =
-        {
-            type: "PlutusV2",
-            script: nftInfo.script
-        }
-
-    const lqMintingPolicy: MintingPolicy =
-        {
-            type: "PlutusV2",
-            script: lqInfo.script
-        }
-
-    const lqUnit: Unit  = `${lqInfo.policyId.concat(lqTNBase16)}`;
-    const nftUnit: Unit = `${nftInfo.policyId.concat(nftTNBase16)}`;
-
-    console.log(`lq: ${lqUnit}`);
-    console.log(`nftUnit: ${nftUnit}`);
-
-    const mintingLqAssets: Record<Unit | "lovelace", bigint> =
-        {
-            [lqUnit]: lqEmission
-        }
-
-    const mintingNftAssets: Record<Unit | "lovelace", bigint> =
-        {
-            [nftUnit]: nftEmission
-        }
-
-    const poolConfig = await buildPoolConfig(lucid, startLovelaceValue, adaWeight, startTokenB, tokenBWeight, nftInfo.policyId, lqInfo.policyId);
-
-    console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
-
-    const depositedValue = {
-        lovelace: BigInt(startLovelaceValue),
-        [asUnit(poolConfig.poolY)]: BigInt(startTokenB),
-        [asUnit(poolConfig.poolNft)]: nftEmission,
-        [asUnit(poolConfig.poolLq)]: lqEmission
-    }
-
-    console.log(`depositedValue: ${JSON.stringify(depositedValue, stringifyBigIntReviewer)}`)
-
-    console.log(`token box: ${JSON.stringify(boxWithToken, stringifyBigIntReviewer)}`);
-    console.log(`ada box: ${JSON.stringify(boxWithAda, stringifyBigIntReviewer)}`);
-
-    const tx = await lucid.newTx().collectFrom([boxWithToken!, boxWithAda!])
-        .attachMintingPolicy(nftMintingPolicy)
-        .mintAssets(mintingNftAssets, Data.to(0n))
-        .attachMintingPolicy(lqMintingPolicy)
-        .mintAssets(mintingLqAssets, Data.to(0n))
-        .payToContract(poolAddress, { inline: buildPoolDatum(poolConfig) }, depositedValue)
-        .complete();
-
-    console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
-
-    const txId = await (await tx.sign().complete()).submit();
-
-    console.log(`tx: ${txId}`)
-}
+// async function main() {
+//
+//     const lucid = await getLucid();
+//     await setupWallet(lucid);
+//
+//     const conf = await getConfig<BuiltValidators>();
+//
+//     const utxos = (await lucid.wallet().getUtxos());
+//
+//     const boxWithToken = await getUtxoWithToken(utxos, encodedTestB);
+//     const boxWithAda   = await getUtxoWithAda(utxos)
+//
+//     if (!boxWithToken) {
+//         console.log("No box with token!");
+//         return
+//     }
+//
+//     const nftInfo = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, nftTNBase16, `${nftEmission}`);
+//     const lqInfo  = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, lqTNBase16, `${lqEmission}`);
+//
+//     console.log(`nft info: ${nftInfo}`);
+//
+//     console.log(`address: ${await lucid.wallet().address()}`);
+//
+//     const poolAddress = lucid.utils.credentialToAddress(
+//         { hash: conf.validators!.balancePool.hash, type: 'Script' },
+//       );
+//
+//     const nftMintingPolicy: MintingPolicy =
+//         {
+//             type: "PlutusV2",
+//             script: nftInfo.script
+//         }
+//
+//     const lqMintingPolicy: MintingPolicy =
+//         {
+//             type: "PlutusV2",
+//             script: lqInfo.script
+//         }
+//
+//     const lqUnit: Unit  = `${lqInfo.policyId.concat(lqTNBase16)}`;
+//     const nftUnit: Unit = `${nftInfo.policyId.concat(nftTNBase16)}`;
+//
+//     console.log(`lq: ${lqUnit}`);
+//     console.log(`nftUnit: ${nftUnit}`);
+//
+//     const mintingLqAssets: Record<Unit | "lovelace", bigint> =
+//         {
+//             [lqUnit]: lqEmission
+//         }
+//
+//     const mintingNftAssets: Record<Unit | "lovelace", bigint> =
+//         {
+//             [nftUnit]: nftEmission
+//         }
+//
+//     const poolConfig = await buildPoolConfig(lucid, startLovelaceValue, adaWeight, startTokenB, tokenBWeight, nftInfo.policyId, lqInfo.policyId);
+//
+//     console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
+//
+//     const depositedValue = {
+//         lovelace: BigInt(startLovelaceValue),
+//         [asUnit(poolConfig.poolY)]: BigInt(startTokenB),
+//         [asUnit(poolConfig.poolNft)]: nftEmission,
+//         [asUnit(poolConfig.poolLq)]: lqEmission
+//     }
+//
+//     console.log(`depositedValue: ${JSON.stringify(depositedValue, stringifyBigIntReviewer)}`)
+//
+//     console.log(`token box: ${JSON.stringify(boxWithToken, stringifyBigIntReviewer)}`);
+//     console.log(`ada box: ${JSON.stringify(boxWithAda, stringifyBigIntReviewer)}`);
+//
+//     const tx = await lucid.newTx().collectFrom([boxWithToken!, boxWithAda!])
+//         .attachMintingPolicy(nftMintingPolicy)
+//         .mintAssets(mintingNftAssets, Data.to(0n))
+//         .attachMintingPolicy(lqMintingPolicy)
+//         .mintAssets(mintingLqAssets, Data.to(0n))
+//         .payToContract(poolAddress, { inline: buildPoolDatum(poolConfig) }, depositedValue)
+//         .complete();
+//
+//     console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
+//
+//     const txId = await (await tx.sign().complete()).submit();
+//
+//     console.log(`tx: ${txId}`)
+// }
 
 async function buildPoolConfig(lucid: Lucid, xQty: number, xWeight: number, yQty: number, yWeight: number, nftCS: string, lqCS: string): Promise<PoolConfig> {
 
@@ -227,7 +226,7 @@ function buildPoolDatum(conf: PoolConfig): Datum {
     }, BalanceContract.conf)
 }
 
-function getUtxoWithToken(utxos: UTxO[], token2find: string) {
+export function getUtxoWithToken(utxos: UTxO[], token2find: string) {
     return utxos.find( utxo =>
             {
                 return (Object.keys(utxo.assets) as Array<string>).find(key => key.includes(token2find)) !== undefined
@@ -235,7 +234,7 @@ function getUtxoWithToken(utxos: UTxO[], token2find: string) {
         )
 }
 
-function getUtxoWithAda(utxos: UTxO[]) {
+export function getUtxoWithAda(utxos: UTxO[]) {
     return utxos.find( utxo =>
             {
                 return ((utxo.assets["lovelace"] > startLovelaceValue))
@@ -243,7 +242,7 @@ function getUtxoWithAda(utxos: UTxO[]) {
         )
 }
 
-async function getCSAndSсript(txId: string, outIdx: number, tn: string, qty: string): Promise<TokenInfo> {
+export async function getCSAndSсript(txId: string, outIdx: number, tn: string, qty: string): Promise<TokenInfo> {
 
     const res = await getMintingTokenInfo<CreationResponse>(new URL("http://88.99.59.114:8081/getData/"), txId, outIdx, tn, qty);
 
@@ -276,7 +275,7 @@ function getMintingTokenInfo<T>(url: URL, txId: string, outIdx: number, tn: stri
           })
 }
 
-function getDAO<T>(url: URL, nftCS: string, nftTN: string): Promise<T> {
+export function getDAO<T>(url: URL, nftCS: string, nftTN: string): Promise<T> {
     return fetch(url, {
         method: 'POST',
         body: `{"nftCS":"${nftCS}","nftTN":"${nftTN}"}`,
@@ -292,4 +291,4 @@ function getDAO<T>(url: URL, nftCS: string, nftTN: string): Promise<T> {
           })
 }
 
-main();
+//main();

@@ -6,12 +6,18 @@ import {
   TxComplete,
   validatorToAddress
 } from "@lucid-evolution/lucid";
-import { validatorToScriptHash,  } from "@lucid-evolution/utils";
+import { validatorToScriptHash } from "@lucid-evolution/utils";
 import { BuiltValidators, DeployedValidators, ScriptNames } from "./types.ts";
 import { getLucid } from "./lucid.ts";
 import { generateConfigJson } from "./config.ts";
 import { setupWallet } from "./wallet.ts";
-import { GridGridNative, LimitOrderBatchWitness, LimitOrderLimitOrder } from "../plutus.ts";
+import {
+  GridGridNative,
+  LimitOrderBatchWitness,
+  LimitOrderLimitOrder, RoyaltyPoolDepositValidate, RoyaltyPoolFeeSwitchValidate,
+  RoyaltyPoolPoolValidatePool, RoyaltyPoolRedeemValidate,
+  RoyaltyPoolWithdrawValidate
+} from "../plutus.ts";
 
 export class Deployment {
   lucid: Lucid;
@@ -33,19 +39,37 @@ export class Deployment {
     const orderScriptHash = validatorToScriptHash(orderScript);
     const gridOrderNativeScript = new GridGridNative();
     const gridOrderNativeHash = validatorToScriptHash(gridOrderNativeScript);
+    const royaltyPool = new RoyaltyPoolPoolValidatePool();
+    const royaltyPoolHash = validatorToScriptHash(royaltyPool);
+    const royaltyWithdraw = new RoyaltyPoolWithdrawValidate();
+    const royaltyWithdrawHash = validatorToScriptHash(royaltyWithdraw);
+    const royaltyDeposit = new RoyaltyPoolDepositValidate();
+    const royaltyDepositHash = validatorToScriptHash(royaltyDeposit);
+    const royaltyRedeem = new RoyaltyPoolRedeemValidate();
+    const royaltyRedeemHash = validatorToScriptHash(royaltyRedeem);
+    const royaltyFeeSwitch = new RoyaltyPoolFeeSwitchValidate();
+    const royaltyFeeSwitchHash = validatorToScriptHash(royaltyFeeSwitch);
     return {
-      limitOrder: {
-        script: orderScript,
-        hash: orderScriptHash,
+      royaltyPool: {
+        script: royaltyPool,
+        hash: royaltyPoolHash,
       },
-      limitOrderWitness: {
-        script: witnessScript,
-        hash: witnessScriptHash,
+      royaltyWithdraw: {
+        script: royaltyWithdraw,
+        hash: royaltyWithdrawHash,
       },
-      gridOrderNative: {
-        script: gridOrderNativeScript,
-        hash: gridOrderNativeHash,
+      royaltyDeposit: {
+        script: royaltyDeposit,
+        hash: royaltyDepositHash,
       },
+      royaltyRedeem: {
+        script: royaltyRedeem,
+        hash: royaltyRedeemHash,
+      },
+      royaltyFeeSwitch: {
+        script: royaltyFeeSwitch,
+        hash: royaltyFeeSwitchHash,
+      }
     }
   }
 
@@ -55,17 +79,41 @@ export class Deployment {
       slot: 0,
     });
     const lockScript = validatorToAddress("Preprod", ns);
-    const witnessRewardAddress = credentialToRewardAddress("Preprod", {
-      type: "Script",
-      hash: builtValidators.limitOrderWitness.hash
-    });
+    // const witnessRewardAddress = credentialToRewardAddress("Preprod", {
+    //   type: "Script",
+    //   hash: builtValidators.limitOrderWitness.hash
+    // });
     const tx = await this.lucid
       .newTx()
       .pay.ToAddressWithData(
         lockScript,
             { kind: "inline", value: "00"},
          undefined,
-         builtValidators.limitOrderWitness.script,
+         builtValidators.royaltyPool.script,
+      )
+      .pay.ToAddressWithData(
+          lockScript,
+          { kind: "inline", value: "00"},
+          undefined,
+          builtValidators.royaltyDeposit.script,
+      )
+      .pay.ToAddressWithData(
+          lockScript,
+          { kind: "inline", value: "00"},
+          undefined,
+          builtValidators.royaltyRedeem.script,
+      )
+      .pay.ToAddressWithData(
+          lockScript,
+          { kind: "inline", value: "00"},
+          undefined,
+          builtValidators.royaltyFeeSwitch.script,
+      )
+      .pay.ToAddressWithData(
+          lockScript,
+          { kind: "inline", value: "00"},
+          undefined,
+          builtValidators.royaltyWithdraw.script,
       )
       // .pay.ToAddressWithData(
       //   lockScript,
