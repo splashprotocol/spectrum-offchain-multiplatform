@@ -16,8 +16,8 @@ import { credentialToAddress } from "@lucid-evolution/utils";
 export const TokenB   = "7465737444"
 export const TokenBCS = "4b3459fd18a1dbabe207cd19c9951a9fac9f5c0f9c384e3d97efba26"
 
-const lqFee = 10000n
-const treasuryFee = 100000n
+const lqFee = 95000n
+const treasuryFee = 10000n
 const royaltyFee = 10000n
 
 const startLovelaceValue = 100000000
@@ -173,7 +173,7 @@ async function main() {
             Inline: [{ ScriptCredential: ["fb119a292524f162fe89d02bc9a2d0e0d8a1764f729aff3f99e4709b"] }]
         }],
         // treasuryAddress - is contract
-        treasuryAddress: "",
+        treasuryAddress: conf.validators.royaltyPool.hash,
         royaltyPubKeyHash256: "f0bb1b4a3ffa2e954def5ed167b3723103465f6ab85b19057ed79ca14e18406a",
         royaltyNonce: 0n,
     }

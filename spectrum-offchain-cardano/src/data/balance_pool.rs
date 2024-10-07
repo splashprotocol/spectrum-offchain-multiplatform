@@ -549,8 +549,10 @@ impl MarketMaker for BalancePool {
         let weight_x = BigNumber::from(self.weight_x as f64).div(BigNumber::from(WEIGHT_FEE_DEN as f64));
         let tradable_y_reserves = BigNumber::from((self.reserves_y - self.treasury_y).untag() as f64);
         let weight_y = BigNumber::from(self.weight_y as f64).div(BigNumber::from(WEIGHT_FEE_DEN as f64));
-        let fee_x = BigNumber::from((self.lp_fee_x - self.treasury_fee).to_f64()?);
-        let fee_y = BigNumber::from((self.lp_fee_y - self.treasury_fee).to_f64()?);
+        let raw_fee_x = self.lp_fee_x.checked_sub(&self.treasury_fee)?;
+        let fee_x = BigNumber::from(raw_fee_x.to_f64()?);
+        let raw_fee_y = self.lp_fee_y.checked_sub(&self.treasury_fee)?;
+        let fee_y = BigNumber::from(raw_fee_y.to_f64()?);
         let bid_price = BigNumber::from(*worst_price.unwrap().denom() as f64)
             / BigNumber::from(*worst_price.unwrap().numer() as f64);
         let ask_price = BigNumber::from(*worst_price.unwrap().numer() as f64)

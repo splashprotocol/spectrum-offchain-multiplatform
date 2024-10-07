@@ -454,8 +454,10 @@ impl MarketMaker for ConstFnPool {
             BigNumber::from((self.reserves_x - self.treasury_x - self.royalty_x).untag() as f64);
         let tradable_y_reserves =
             BigNumber::from((self.reserves_y - self.treasury_y - self.royalty_y).untag() as f64);
-        let fee_x = BigNumber::from((self.lp_fee_x - self.treasury_fee - self.royalty_fee).to_f64()?);
-        let fee_y = BigNumber::from((self.lp_fee_y - self.treasury_fee - self.royalty_fee).to_f64()?);
+        let raw_fee_x = self.lp_fee_x.checked_sub(&self.treasury_fee).and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
+        let fee_x = BigNumber::from(raw_fee_x.to_f64()?);
+        let raw_fee_y = self.lp_fee_y.checked_sub(&self.treasury_fee).and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
+        let fee_y = BigNumber::from(raw_fee_y.to_f64()?);
         let bid_price = BigNumber::from(*worst_price.unwrap().denom() as f64)
             / BigNumber::from(*worst_price.unwrap().numer() as f64);
         let ask_price = BigNumber::from(*worst_price.unwrap().numer() as f64)
@@ -812,14 +814,22 @@ impl ApplyOrder<ClassicalOnChainLimitSwap> for ConstFnPool {
             let additional_treasury_y = (((order.base_amount.untag() as u128)
                 * (*self.treasury_fee.numer() as u128))
                 / (*self.treasury_fee.denom() as u128)) as u64;
+            let additional_royalty_y = (((order.base_amount.untag() as u128)
+                * (*self.royalty_fee.numer() as u128))
+                / (*self.royalty_fee.denom() as u128)) as u64;
             self.reserves_x = self.reserves_x - quote_amount.retag();
             self.treasury_y = self.treasury_y + TaggedAmount::new(additional_treasury_y);
+            self.royalty_y = self.royalty_y + TaggedAmount::new(additional_royalty_y);
             self.reserves_y = self.reserves_y + order.base_amount.retag();
         } else {
             let additional_treasury_x = (((order.base_amount.untag() as u128)
                 * (*self.treasury_fee.numer() as u128))
                 / (*self.treasury_fee.denom() as u128)) as u64;
+            let additional_royalty_x = (((order.base_amount.untag() as u128)
+                * (*self.royalty_fee.numer() as u128))
+                / (*self.royalty_fee.denom() as u128)) as u64;
             self.treasury_x = self.treasury_x + TaggedAmount::new(additional_treasury_x);
+            self.royalty_x = self.royalty_x + TaggedAmount::new(additional_royalty_x);
             self.reserves_y = self.reserves_y - quote_amount.retag();
             self.reserves_x = self.reserves_x + order.base_amount.retag();
         }
