@@ -37,7 +37,6 @@ use spectrum_offchain::data::{Has, Stable};
 use spectrum_offchain::ledger::{IntoLedger, TryFromLedger};
 
 use crate::constants::{FEE_DEN, LEGACY_FEE_NUM_MULTIPLIER, MAX_LQ_CAP};
-use crate::data::cfmm_pool::ConstFnPoolVer::RoyaltyPoolV1;
 use crate::data::deposit::ClassicalOnChainDeposit;
 use crate::data::fee_switch_bidirectional_fee::FeeSwitchBidirectionalPoolConfig;
 use crate::data::fee_switch_pool::FeeSwitchPoolConfig;
@@ -53,7 +52,7 @@ use crate::data::royalty_pool::{RoyaltyPoolConfig, RoyaltyPoolDatumMapping, ROYA
 use crate::data::royalty_withdraw::OnChainRoyaltyWithdraw;
 use crate::data::PoolId;
 use crate::deployment::ProtocolValidator::{
-    ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2,
+    RoyaltyPoolV1, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2,
 };
 use crate::deployment::{DeployedScriptInfo, DeployedValidator, DeployedValidatorErased, RequiresValidator};
 use crate::fees::FeeExtension;
@@ -150,7 +149,7 @@ impl ConstFnPoolVer {
                 .script_hash
                 == *this_hash
             {
-                return Some(RoyaltyPoolV1);
+                return Some(ConstFnPoolVer::RoyaltyPoolV1);
             }
         };
         None
@@ -676,7 +675,7 @@ where
                         });
                     }
                 }
-                RoyaltyPoolV1 => {
+                ConstFnPoolVer::RoyaltyPoolV1 => {
                     let conf = RoyaltyPoolConfig::try_from_pd(pd.clone())?;
                     let liquidity_neg = value.amount_of(conf.asset_lq.into())?;
                     let lov = value.amount_of(Native)?;
@@ -1048,10 +1047,7 @@ mod tests {
     use crate::data::cfmm_pool::{ConstFnPool, ConstFnPoolVer};
     use crate::data::pool::PoolValidation;
     use crate::data::PoolId;
-    use crate::deployment::ProtocolValidator::{
-        ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1,
-        ConstFnPoolV2,
-    };
+    use crate::deployment::ProtocolValidator::{ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2, RoyaltyPoolV1};
     use crate::deployment::{DeployedScriptInfo, DeployedValidators, ProtocolScriptHashes};
 
     fn gen_ada_token_pool(
@@ -1117,12 +1113,14 @@ mod tests {
             royalty_x: TaggedAmount::new(0),
             royalty_y: TaggedAmount::new(0),
             lq_lower_bound: TaggedAmount::new(0),
+            royalty_pub_key_hash: [0; 32],
             ver: ConstFnPoolVer::FeeSwitch,
             marginal_cost: ExUnits { mem: 100, steps: 100 },
             bounds: PoolValidation {
                 min_n2t_lovelace: 10000000,
                 min_t2t_lovelace: 10000000,
             },
+            royalty_nonce: 0,
         };
     }
 
@@ -1226,6 +1224,14 @@ mod tests {
             &self,
         ) -> DeployedScriptInfo<{ ConstFnPoolFeeSwitchV2 as u8 }> {
             self.scripts.const_fn_pool_fee_switch_v2
+        }
+    }
+
+    impl Has<DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }>> for Ctx {
+        fn select<U: IsEqual<DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }>>>(
+            &self,
+        ) -> DeployedScriptInfo<{ RoyaltyPoolV1 as u8 }> {
+            self.scripts.royalty_pool_v1
         }
     }
 
