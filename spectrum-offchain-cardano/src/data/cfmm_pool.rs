@@ -9,11 +9,13 @@ use cml_chain::plutus::{ConstrPlutusData, PlutusData};
 use cml_chain::transaction::{ConwayFormatTxOut, DatumOption, TransactionOutput};
 use cml_chain::utils::BigInteger;
 use cml_chain::Value;
-use cml_core::serialization::{RawBytesEncoding, ToBytes};
+use cml_core::serialization::{RawBytesEncoding, Serialize, ToBytes};
 use cml_crypto::blake2b256;
+use log::trace;
 use num_rational::Ratio;
 use num_traits::ToPrimitive;
 use num_traits::{CheckedAdd, CheckedSub};
+use pallas_primitives::alonzo::PlutusData::BigInt;
 use type_equalities::IsEqual;
 use void::Void;
 
@@ -52,7 +54,8 @@ use crate::data::royalty_pool::{RoyaltyPoolConfig, RoyaltyPoolDatumMapping, ROYA
 use crate::data::royalty_withdraw::OnChainRoyaltyWithdraw;
 use crate::data::PoolId;
 use crate::deployment::ProtocolValidator::{
-    RoyaltyPoolV1, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2,
+    ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2,
+    RoyaltyPoolV1,
 };
 use crate::deployment::{DeployedScriptInfo, DeployedValidator, DeployedValidatorErased, RequiresValidator};
 use crate::fees::FeeExtension;
@@ -454,9 +457,15 @@ impl MarketMaker for ConstFnPool {
             BigNumber::from((self.reserves_x - self.treasury_x - self.royalty_x).untag() as f64);
         let tradable_y_reserves =
             BigNumber::from((self.reserves_y - self.treasury_y - self.royalty_y).untag() as f64);
-        let raw_fee_x = self.lp_fee_x.checked_sub(&self.treasury_fee).and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
+        let raw_fee_x = self
+            .lp_fee_x
+            .checked_sub(&self.treasury_fee)
+            .and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
         let fee_x = BigNumber::from(raw_fee_x.to_f64()?);
-        let raw_fee_y = self.lp_fee_y.checked_sub(&self.treasury_fee).and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
+        let raw_fee_y = self
+            .lp_fee_y
+            .checked_sub(&self.treasury_fee)
+            .and_then(|fee| fee.checked_sub(&self.royalty_fee))?;
         let fee_y = BigNumber::from(raw_fee_y.to_f64()?);
         let bid_price = BigNumber::from(*worst_price.unwrap().denom() as f64)
             / BigNumber::from(*worst_price.unwrap().numer() as f64);
@@ -975,26 +984,65 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
         let order = royalty_withdraw.order.clone();
         let mut to_sign = vec![];
         let Token(nft_lq, name_nft) = self.id.into();
-        to_sign.append(&mut nft_lq.to_raw_bytes().to_vec());
-        to_sign.append(&mut name_nft.as_bytes().to_vec());
-        to_sign.append(&mut royalty_withdraw.order.withdraw_royalty_x.untag().to_bytes());
-        to_sign.append(&mut royalty_withdraw.order.withdraw_royalty_y.untag().to_bytes());
+        to_sign.append(&mut self.id.0.into_pd().to_cbor_bytes());
         to_sign.append(
             &mut royalty_withdraw
                 .order
+                .withdraw_royalty_x
+                .untag()
+                .into_pd()
+                .to_cbor_bytes(),
+        );
+        to_sign.append(
+            &mut royalty_withdraw
+                .order
+                .withdraw_royalty_y
+                .untag()
+                .into_pd()
+                .to_cbor_bytes(),
+        );
+        to_sign.append(
+            &mut (royalty_withdraw
+                .order
                 .royalty_pub_key_hash
                 .to_raw_bytes()
-                .to_vec(),
+                .to_vec()
+                .into_pd())
+            .to_cbor_bytes(),
         );
-        to_sign.append(&mut royalty_withdraw.order.royalty_pub_key.to_raw_bytes().to_vec());
-        to_sign.append(&mut self.royalty_nonce.to_bytes());
+        to_sign.append(
+            &mut (royalty_withdraw
+                .order
+                .royalty_pub_key
+                .to_raw_bytes()
+                .to_vec()
+                .into_pd())
+            .to_cbor_bytes(),
+        );
+        to_sign.append(&mut self.royalty_nonce.into_pd().to_cbor_bytes());
 
         let signature_is_correct = order.royalty_pub_key.verify(&to_sign, &order.signature);
         let royalty_address_is_correct =
             blake2b256(order.royalty_pub_key.to_raw_bytes()) == self.royalty_pub_key_hash;
 
+        trace!("toSign: {}", hex::encode(to_sign));
+        trace!(
+            "blake2b256(order.royalty_pub_key.to_raw_bytes()): {}",
+            hex::encode(blake2b256(order.royalty_pub_key.to_raw_bytes()))
+        );
+        trace!(
+            "self.royalty_pub_key_hash: {}",
+            hex::encode(self.royalty_pub_key_hash)
+        );
+
         if !signature_is_correct || !royalty_address_is_correct {
-            return Err(ApplyOrderError::verification_failed(royalty_withdraw));
+            return Err(ApplyOrderError::verification_failed(
+                royalty_withdraw,
+                format!(
+                    "signature_is_correct: {}, royalty_address_is_correct: {}",
+                    signature_is_correct, royalty_address_is_correct
+                ),
+            ));
         }
 
         self.royalty_x = self
@@ -1057,7 +1105,10 @@ mod tests {
     use crate::data::cfmm_pool::{ConstFnPool, ConstFnPoolVer};
     use crate::data::pool::PoolValidation;
     use crate::data::PoolId;
-    use crate::deployment::ProtocolValidator::{ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2, RoyaltyPoolV1};
+    use crate::deployment::ProtocolValidator::{
+        ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1,
+        ConstFnPoolV2, RoyaltyPoolV1,
+    };
     use crate::deployment::{DeployedScriptInfo, DeployedValidators, ProtocolScriptHashes};
 
     fn gen_ada_token_pool(

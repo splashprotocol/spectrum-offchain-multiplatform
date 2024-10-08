@@ -25,6 +25,15 @@ impl IntoPlutusData for u128 {
     }
 }
 
+impl IntoPlutusData for Vec<u8> {
+    fn into_pd(self) -> PlutusData {
+        PlutusData::Bytes {
+            bytes: self,
+            bytes_encoding: Default::default(),
+        }
+    }
+}
+
 impl IntoPlutusData for U512 {
     fn into_pd(self) -> PlutusData {
         PlutusData::Integer(BigInteger::from_str(self.to_string().as_str()).unwrap())

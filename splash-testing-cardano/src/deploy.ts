@@ -103,12 +103,12 @@ export class Deployment {
           undefined,
           builtValidators.royaltyRedeem.script,
       )
-      .pay.ToAddressWithData(
-          lockScript,
-          { kind: "inline", value: "00"},
-          undefined,
-          builtValidators.royaltyFeeSwitch.script,
-      )
+      // .pay.ToAddressWithData(
+      //     lockScript,
+      //     { kind: "inline", value: "00"},
+      //     undefined,
+      //     builtValidators.royaltyFeeSwitch.script,
+      // )
       .pay.ToAddressWithData(
           lockScript,
           { kind: "inline", value: "00"},

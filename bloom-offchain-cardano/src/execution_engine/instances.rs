@@ -24,7 +24,7 @@ use spectrum_offchain_cardano::data::{balance_pool, cfmm_pool, stable_pool_t2t};
 use spectrum_offchain_cardano::deployment::ProtocolValidator::{
     BalanceFnPoolV1, BalanceFnPoolV2, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee,
     ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2, DegenQuadraticPoolV1, GridOrderNative,
-    LimitOrderV1, LimitOrderWitnessV1, StableFnPoolT2T, RoyaltyPoolV1
+    LimitOrderV1, LimitOrderWitnessV1, RoyaltyPoolV1, StableFnPoolT2T,
 };
 use spectrum_offchain_cardano::deployment::{DeployedValidator, DeployedValidatorErased, RequiresValidator};
 use spectrum_offchain_cardano::script::{

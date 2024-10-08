@@ -43,7 +43,11 @@ use crate::data::pair::PairId;
 use crate::data::pool::AnyPool::{BalancedCFMM, PureCFMM, StableCFMM};
 use crate::data::stable_pool_t2t::{StablePoolRedeemer, StablePoolT2T as StablePoolT2TData};
 use crate::data::OnChainOrderId;
-use crate::deployment::ProtocolValidator::{BalanceFnPoolV1, BalanceFnPoolV2, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee, ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2, DegenQuadraticPoolV1, RoyaltyPoolV1, StableFnPoolT2T};
+use crate::deployment::ProtocolValidator::{
+    BalanceFnPoolV1, BalanceFnPoolV2, ConstFnPoolFeeSwitch, ConstFnPoolFeeSwitchBiDirFee,
+    ConstFnPoolFeeSwitchV2, ConstFnPoolV1, ConstFnPoolV2, DegenQuadraticPoolV1, RoyaltyPoolV1,
+    StableFnPoolT2T,
+};
 use crate::deployment::{DeployedScriptInfo, RequiresValidator};
 
 pub struct Rx;
@@ -64,8 +68,8 @@ impl<Order> ApplyOrderError<Order> {
         Self::Incompatible(Incompatible { order })
     }
 
-    pub fn verification_failed(order: Order) -> Self {
-        Self::VerificationFailed(VerificationFailed { order })
+    pub fn verification_failed(order: Order, description: String) -> Self {
+        Self::VerificationFailed(VerificationFailed { order, description })
     }
 
     pub fn map<F, T1>(self, f: F) -> ApplyOrderError<T1>
@@ -197,6 +201,7 @@ impl<Order> From<Incompatible<Order>> for RunOrderError<Order> {
 #[derive(Debug)]
 pub struct VerificationFailed<Order> {
     pub order: Order,
+    pub description: String,
 }
 
 impl<T> VerificationFailed<T> {
@@ -204,13 +209,16 @@ impl<T> VerificationFailed<T> {
     where
         F: FnOnce(T) -> T1,
     {
-        VerificationFailed { order: f(self.order) }
+        VerificationFailed {
+            order: f(self.order),
+            description: self.description,
+        }
     }
 }
 
 impl<Order> From<VerificationFailed<Order>> for RunOrderError<Order> {
     fn from(value: VerificationFailed<Order>) -> Self {
-        RunOrderError::Fatal("Verification failed".to_string(), value.order)
+        RunOrderError::Fatal(format!("Verification failed. {}", value.description), value.order)
     }
 }
 
