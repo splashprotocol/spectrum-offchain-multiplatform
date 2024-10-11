@@ -765,6 +765,7 @@ impl IntoLedger<TransactionOutput, ImmutablePoolUtxo> for ConstFnPool {
                     self.treasury_y.untag(),
                     self.royalty_x.untag(),
                     self.royalty_y.untag(),
+                    self.royalty_nonce
                 );
             }
         }
@@ -791,12 +792,14 @@ pub fn unsafe_update_pd_royalty(
     treasury_y: u64,
     royalty_x: u64,
     royalty_y: u64,
+    new_nonce: u64,
 ) {
     let cpd = data.get_constr_pd_mut().unwrap();
     cpd.set_field(ROYALTY_DATUM_MAPPING.treasury_x, treasury_x.into_pd());
     cpd.set_field(ROYALTY_DATUM_MAPPING.treasury_y, treasury_y.into_pd());
     cpd.set_field(ROYALTY_DATUM_MAPPING.royalty_x, royalty_x.into_pd());
     cpd.set_field(ROYALTY_DATUM_MAPPING.royalty_y, royalty_y.into_pd());
+    cpd.set_field(ROYALTY_DATUM_MAPPING.royalty_nonce, new_nonce.into_pd())
 }
 
 impl ApplyOrder<ClassicalOnChainLimitSwap> for ConstFnPool {
@@ -1020,8 +1023,9 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
             .to_cbor_bytes(),
         );
         to_sign.append(&mut self.royalty_nonce.into_pd().to_cbor_bytes());
+        to_sign.append(&mut order.fee.into_pd().to_cbor_bytes());
 
-        let signature_is_correct = order.royalty_pub_key.verify(&to_sign, &order.signature);
+        let signature_is_correct = order.royalty_pub_key.verify(&order.raw_data_to_sign, &order.signature);
         let royalty_address_is_correct =
             blake2b256(order.royalty_pub_key.to_raw_bytes()) == self.royalty_pub_key_hash;
 
@@ -1045,20 +1049,32 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
             ));
         }
 
+        trace!("self.royalty_x: {}", self.royalty_x);
+        trace!("order.withdraw_royalty_x: {}", order.withdraw_royalty_x);
+
         self.royalty_x = self
             .royalty_x
             .checked_sub(&order.withdraw_royalty_x)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        trace!("self.royalty_y: {}", self.royalty_y);
+        trace!("order.withdraw_royalty_y: {}", order.withdraw_royalty_y);
 
         self.royalty_y = self
             .royalty_y
             .checked_sub(&order.withdraw_royalty_y)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
 
+        trace!("self.reserves_x: {}", self.reserves_x);
+        trace!("order.withdraw_royalty_x: {}", order.withdraw_royalty_x);
+
         self.reserves_x = self
             .reserves_x
             .checked_sub(&order.withdraw_royalty_x)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
+
+        trace!("self.reserves_y: {}", self.reserves_y);
+        trace!("order.withdraw_royalty_y: {}", order.withdraw_royalty_y);
 
         self.reserves_y = self
             .reserves_y
@@ -1072,7 +1088,7 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
             token_x_amount: order.withdraw_royalty_x,
             token_y_asset: self.asset_y,
             token_y_amount: order.withdraw_royalty_y,
-            ada_residue: 0,
+            ada_residue: order.init_ada_value - order.fee,
             redeemer_pkh: order.royalty_pub_key_hash,
         };
 

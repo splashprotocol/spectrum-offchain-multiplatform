@@ -505,6 +505,7 @@ where
                     transition.treasury_y.untag(),
                     transition.royalty_x.untag(),
                     transition.royalty_y.untag(),
+                    transition.royalty_nonce
                 );
             }
         }

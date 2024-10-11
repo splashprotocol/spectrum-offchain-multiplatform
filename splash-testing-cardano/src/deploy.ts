@@ -91,18 +91,18 @@ export class Deployment {
          undefined,
          builtValidators.royaltyPool.script,
       )
-      .pay.ToAddressWithData(
-          lockScript,
-          { kind: "inline", value: "00"},
-          undefined,
-          builtValidators.royaltyDeposit.script,
-      )
-      .pay.ToAddressWithData(
-          lockScript,
-          { kind: "inline", value: "00"},
-          undefined,
-          builtValidators.royaltyRedeem.script,
-      )
+      // .pay.ToAddressWithData(
+      //     lockScript,
+      //     { kind: "inline", value: "00"},
+      //     undefined,
+      //     builtValidators.royaltyDeposit.script,
+      // )
+      // .pay.ToAddressWithData(
+      //     lockScript,
+      //     { kind: "inline", value: "00"},
+      //     undefined,
+      //     builtValidators.royaltyRedeem.script,
+      // )
       // .pay.ToAddressWithData(
       //     lockScript,
       //     { kind: "inline", value: "00"},
