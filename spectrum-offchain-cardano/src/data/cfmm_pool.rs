@@ -985,59 +985,10 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
         royalty_withdraw: OnChainRoyaltyWithdraw,
     ) -> Result<(Self, RoyaltyWithdrawOutput), ApplyOrderError<OnChainRoyaltyWithdraw>> {
         let order = royalty_withdraw.order.clone();
-        let mut to_sign = vec![];
-        let Token(nft_lq, name_nft) = self.id.into();
-        to_sign.append(&mut self.id.0.into_pd().to_cbor_bytes());
-        to_sign.append(
-            &mut royalty_withdraw
-                .order
-                .withdraw_royalty_x
-                .untag()
-                .into_pd()
-                .to_cbor_bytes(),
-        );
-        to_sign.append(
-            &mut royalty_withdraw
-                .order
-                .withdraw_royalty_y
-                .untag()
-                .into_pd()
-                .to_cbor_bytes(),
-        );
-        to_sign.append(
-            &mut (royalty_withdraw
-                .order
-                .royalty_pub_key_hash
-                .to_raw_bytes()
-                .to_vec()
-                .into_pd())
-            .to_cbor_bytes(),
-        );
-        to_sign.append(
-            &mut (royalty_withdraw
-                .order
-                .royalty_pub_key
-                .to_raw_bytes()
-                .to_vec()
-                .into_pd())
-            .to_cbor_bytes(),
-        );
-        to_sign.append(&mut self.royalty_nonce.into_pd().to_cbor_bytes());
-        to_sign.append(&mut order.fee.into_pd().to_cbor_bytes());
 
         let signature_is_correct = order.royalty_pub_key.verify(&order.raw_data_to_sign, &order.signature);
         let royalty_address_is_correct =
             blake2b256(order.royalty_pub_key.to_raw_bytes()) == self.royalty_pub_key_hash;
-
-        trace!("toSign: {}", hex::encode(to_sign));
-        trace!(
-            "blake2b256(order.royalty_pub_key.to_raw_bytes()): {}",
-            hex::encode(blake2b256(order.royalty_pub_key.to_raw_bytes()))
-        );
-        trace!(
-            "self.royalty_pub_key_hash: {}",
-            hex::encode(self.royalty_pub_key_hash)
-        );
 
         if !signature_is_correct || !royalty_address_is_correct {
             return Err(ApplyOrderError::verification_failed(
@@ -1049,32 +1000,20 @@ impl ApplyOrder<OnChainRoyaltyWithdraw> for ConstFnPool {
             ));
         }
 
-        trace!("self.royalty_x: {}", self.royalty_x);
-        trace!("order.withdraw_royalty_x: {}", order.withdraw_royalty_x);
-
         self.royalty_x = self
             .royalty_x
             .checked_sub(&order.withdraw_royalty_x)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
-
-        trace!("self.royalty_y: {}", self.royalty_y);
-        trace!("order.withdraw_royalty_y: {}", order.withdraw_royalty_y);
 
         self.royalty_y = self
             .royalty_y
             .checked_sub(&order.withdraw_royalty_y)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
 
-        trace!("self.reserves_x: {}", self.reserves_x);
-        trace!("order.withdraw_royalty_x: {}", order.withdraw_royalty_x);
-
         self.reserves_x = self
             .reserves_x
             .checked_sub(&order.withdraw_royalty_x)
             .ok_or(ApplyOrderError::incompatible(royalty_withdraw.clone()))?;
-
-        trace!("self.reserves_y: {}", self.reserves_y);
-        trace!("order.withdraw_royalty_y: {}", order.withdraw_royalty_y);
 
         self.reserves_y = self
             .reserves_y

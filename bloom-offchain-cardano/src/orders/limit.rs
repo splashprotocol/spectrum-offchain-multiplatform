@@ -385,9 +385,6 @@ where
                 .checked_sub(reserved_lovelace)
                 .and_then(|lov| lov.checked_sub(conf.fee))
                 .and_then(|lov| lov.checked_sub(tradable_lovelace))?;
-            if !conf.input.is_native() && !conf.output.is_native() {
-                return None
-            }
             if let Some(base_output) = linear_output_relative(conf.tradable_input, conf.base_price) {
                 let min_marginal_output = min(conf.min_marginal_output, base_output);
                 let max_execution_steps_possible = base_output.checked_div(min_marginal_output);

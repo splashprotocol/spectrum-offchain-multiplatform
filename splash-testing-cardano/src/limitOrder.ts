@@ -156,54 +156,54 @@ async function main() {
 async function createMToNOrders() {
     const myAddr = await lucid.wallet().address();
     console.log("My address: ", getAddressDetails(myAddr));
-    // const txBid1 = await createLimitOrder(lucid, conf.validators!.limitOrder, {
-    //     input: {
-    //         policy: "4b3459fd18a1dbabe207cd19c9951a9fac9f5c0f9c384e3d97efba26",
-    //         name: "7465737444",
-    //     },
-    //     output: {
-    //         policy: "",
-    //         name: "",
-    //     },
-    //     tradableInput: 400_000n,
-    //     minMarginalOutput: 1n,
-    //     costPerExStep: 800_000n,
-    //     basePrice: {
-    //         num: 1n,
-    //         denom: 100_000n,
-    //     },
-    //     fee: 800_000n,
-    //     redeemerAddr: myAddr,
-    //     cancellationPkh: getAddressDetails(myAddr).paymentCredential.hash,
-    //     permittedExecutors: [],
-    // });
-    // const txBidId1 = await (await txBid1.sign.withWallet().complete()).submit();
-    //console.log("Bid #0: " + txBidId1);
-    // await sleep(60);
-    // const txBid2 = await createLimitOrder(lucid, conf.validators!.limitOrder, {
-    //     input: {
-    //         policy: "fd10da3e6a578708c877e14b6aaeda8dc3a36f666a346eec52a30b3a",
-    //         name: "74657374746f6b656e",
-    //     },
-    //     output: {
-    //         policy: "",
-    //         name: "",
-    //     },
-    //     tradableInput: 60_000n,
-    //     minMarginalOutput: 1_000n,
-    //     costPerExStep: 600_000n,
-    //     basePrice: {
-    //         num: 1000n,
-    //         denom: 1n,
-    //     },
-    //     fee: 500_000n,
-    //     redeemerAddr: myAddr,
-    //     cancellationPkh: getAddressDetails(myAddr).paymentCredential.hash,
-    //     permittedExecutors: [],
-    // });
-    // const txBidId2 = await (await txBid2.sign.withWallet().complete()).submit();
-    // console.log("Bid #1: " + txBidId2);
-    // await sleep(60);
+    const txBid1 = await createLimitOrder(lucid, conf.validators!.limitOrder, {
+        input: {
+            policy: "4b3459fd18a1dbabe207cd19c9951a9fac9f5c0f9c384e3d97efba26",
+            name: "7465737444",
+        },
+        output: {
+            policy: "",
+            name: "",
+        },
+        tradableInput: 400_000n,
+        minMarginalOutput: 1n,
+        costPerExStep: 800_000n,
+        basePrice: {
+            num: 1n,
+            denom: 100_000n,
+        },
+        fee: 800_000n,
+        redeemerAddr: myAddr,
+        cancellationPkh: getAddressDetails(myAddr).paymentCredential.hash,
+        permittedExecutors: [],
+    });
+    const txBidId1 = await (await txBid1.sign.withWallet().complete()).submit();
+    console.log("Bid #0: " + txBidId1);
+    await sleep(60);
+    const txBid2 = await createLimitOrder(lucid, conf.validators!.limitOrder, {
+        input: {
+            policy: "fd10da3e6a578708c877e14b6aaeda8dc3a36f666a346eec52a30b3a",
+            name: "74657374746f6b656e",
+        },
+        output: {
+            policy: "",
+            name: "",
+        },
+        tradableInput: 60_000n,
+        minMarginalOutput: 1_000n,
+        costPerExStep: 600_000n,
+        basePrice: {
+            num: 1000n,
+            denom: 1n,
+        },
+        fee: 500_000n,
+        redeemerAddr: myAddr,
+        cancellationPkh: getAddressDetails(myAddr).paymentCredential.hash,
+        permittedExecutors: [],
+    });
+    const txBidId2 = await (await txBid2.sign.withWallet().complete()).submit();
+    console.log("Bid #1: " + txBidId2);
+    await sleep(60);
     const txAsk = await createLimitOrder(lucid, conf.validators!.limitOrder, {
         input: {
             policy: "",

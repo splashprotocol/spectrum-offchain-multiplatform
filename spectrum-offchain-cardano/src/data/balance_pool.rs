@@ -806,8 +806,7 @@ mod tests {
     use crate::data::{OnChainOrderId, PoolId};
     use crate::data::royalty_withdraw::RoyaltyWithdrawConfig;
 
-    const DATUM_SAMPLE: &str = "d8799fd8799f581fa9fd732811c48069b170fd2fda38fabe6a36e4c64ee8f4782971edde6e6674436e6674ff1a0016e36000581ca05e925159cc1495383854bb450c20bc27ff8ecd9f8ada459b99c78d582019c350e960c14d184d4d5c09dca6d2cfcbe120517dc90985a3dedcd73600a0311a0016e3605840c9bfc26186bacdb951caca19be66216dafe838663d4a23d242d91e2cc61fba7d1be1ede8d584128e173a6d8531b1063a7a29c0879c751387e557a5acd7cc8908ff";
-
+    const DATUM_SAMPLE: &str = "d8799fd8799f581c5df8fe3f9f0e10855f930e0ea6c227e3bba0aba54d39f9d55b95e21c436e6674ffd8799f4040ff01d8799f581c4b3459fd18a1dbabe207cd19c9951a9fac9f5c0f9c384e3d97efba26457465737443ff04d8799f581c0df79145b95580c14ef4baf8d022d7f0cbb08f3bed43bf97a2ddd8cb426c71ff1a000186820a00009fd8799fd87a9f581cb046b660db0eaf9be4f4300180ccf277e4209dada77c48fbd37ba81dffffff581c8d4be10d934b60a22f267699ea3f7ebdade1f8e535d1bd0ef7ce18b61a0501bced08ff";
     fn gen_ada_token_pool(
         reserves_x: u64,
         reserves_y: u64,
@@ -881,7 +880,7 @@ mod tests {
     #[test]
     fn parse_balance_pool_datum() {
         let pd = PlutusData::from_cbor_bytes(&*hex::decode(DATUM_SAMPLE).unwrap()).unwrap();
-        let maybe_conf = RoyaltyWithdrawConfig::try_from_pd(pd);
+        let maybe_conf = BalancePoolConfig::try_from_pd(pd);
         assert!(maybe_conf.is_some())
     }
 

@@ -80,92 +80,92 @@ export const stringifyBigIntReviewer = (_: any, value: any) =>
     ? { value: value.toString(), _bigint: true }
     : value;
 
-// async function main() {
-//
-//     const lucid = await getLucid();
-//     await setupWallet(lucid);
-//
-//     const conf = await getConfig<BuiltValidators>();
-//
-//     const utxos = (await lucid.wallet().getUtxos());
-//
-//     const boxWithToken = await getUtxoWithToken(utxos, encodedTestB);
-//     const boxWithAda   = await getUtxoWithAda(utxos)
-//
-//     if (!boxWithToken) {
-//         console.log("No box with token!");
-//         return
-//     }
-//
-//     const nftInfo = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, nftTNBase16, `${nftEmission}`);
-//     const lqInfo  = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, lqTNBase16, `${lqEmission}`);
-//
-//     console.log(`nft info: ${nftInfo}`);
-//
-//     console.log(`address: ${await lucid.wallet().address()}`);
-//
-//     const poolAddress = lucid.utils.credentialToAddress(
-//         { hash: conf.validators!.balancePool.hash, type: 'Script' },
-//       );
-//
-//     const nftMintingPolicy: MintingPolicy =
-//         {
-//             type: "PlutusV2",
-//             script: nftInfo.script
-//         }
-//
-//     const lqMintingPolicy: MintingPolicy =
-//         {
-//             type: "PlutusV2",
-//             script: lqInfo.script
-//         }
-//
-//     const lqUnit: Unit  = `${lqInfo.policyId.concat(lqTNBase16)}`;
-//     const nftUnit: Unit = `${nftInfo.policyId.concat(nftTNBase16)}`;
-//
-//     console.log(`lq: ${lqUnit}`);
-//     console.log(`nftUnit: ${nftUnit}`);
-//
-//     const mintingLqAssets: Record<Unit | "lovelace", bigint> =
-//         {
-//             [lqUnit]: lqEmission
-//         }
-//
-//     const mintingNftAssets: Record<Unit | "lovelace", bigint> =
-//         {
-//             [nftUnit]: nftEmission
-//         }
-//
-//     const poolConfig = await buildPoolConfig(lucid, startLovelaceValue, adaWeight, startTokenB, tokenBWeight, nftInfo.policyId, lqInfo.policyId);
-//
-//     console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
-//
-//     const depositedValue = {
-//         lovelace: BigInt(startLovelaceValue),
-//         [asUnit(poolConfig.poolY)]: BigInt(startTokenB),
-//         [asUnit(poolConfig.poolNft)]: nftEmission,
-//         [asUnit(poolConfig.poolLq)]: lqEmission
-//     }
-//
-//     console.log(`depositedValue: ${JSON.stringify(depositedValue, stringifyBigIntReviewer)}`)
-//
-//     console.log(`token box: ${JSON.stringify(boxWithToken, stringifyBigIntReviewer)}`);
-//     console.log(`ada box: ${JSON.stringify(boxWithAda, stringifyBigIntReviewer)}`);
-//
-//     const tx = await lucid.newTx().collectFrom([boxWithToken!, boxWithAda!])
-//         .attachMintingPolicy(nftMintingPolicy)
-//         .mintAssets(mintingNftAssets, Data.to(0n))
-//         .attachMintingPolicy(lqMintingPolicy)
-//         .mintAssets(mintingLqAssets, Data.to(0n))
-//         .payToContract(poolAddress, { inline: buildPoolDatum(poolConfig) }, depositedValue)
-//         .complete();
-//
-//     console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
-//
-//     const txId = await (await tx.sign().complete()).submit();
-//
-//     console.log(`tx: ${txId}`)
-// }
+async function main() {
+
+    const lucid = await getLucid();
+    await setupWallet(lucid);
+
+    const conf = await getConfig<BuiltValidators>();
+
+    const utxos = (await lucid.wallet().getUtxos());
+
+    const boxWithToken = await getUtxoWithToken(utxos, encodedTestB);
+    const boxWithAda   = await getUtxoWithAda(utxos)
+
+    if (!boxWithToken) {
+        console.log("No box with token!");
+        return
+    }
+
+    const nftInfo = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, nftTNBase16, `${nftEmission}`);
+    const lqInfo  = await getCSAndSсript(boxWithToken.txHash, boxWithToken.outputIndex, lqTNBase16, `${lqEmission}`);
+
+    console.log(`nft info: ${nftInfo}`);
+
+    console.log(`address: ${await lucid.wallet().address()}`);
+
+    const poolAddress = lucid.utils.credentialToAddress(
+        { hash: conf.validators!.balancePool.hash, type: 'Script' },
+      );
+
+    const nftMintingPolicy: MintingPolicy =
+        {
+            type: "PlutusV2",
+            script: nftInfo.script
+        }
+
+    const lqMintingPolicy: MintingPolicy =
+        {
+            type: "PlutusV2",
+            script: lqInfo.script
+        }
+
+    const lqUnit: Unit  = `${lqInfo.policyId.concat(lqTNBase16)}`;
+    const nftUnit: Unit = `${nftInfo.policyId.concat(nftTNBase16)}`;
+
+    console.log(`lq: ${lqUnit}`);
+    console.log(`nftUnit: ${nftUnit}`);
+
+    const mintingLqAssets: Record<Unit | "lovelace", bigint> =
+        {
+            [lqUnit]: lqEmission
+        }
+
+    const mintingNftAssets: Record<Unit | "lovelace", bigint> =
+        {
+            [nftUnit]: nftEmission
+        }
+
+    const poolConfig = await buildPoolConfig(lucid, startLovelaceValue, adaWeight, startTokenB, tokenBWeight, nftInfo.policyId, lqInfo.policyId);
+
+    console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
+
+    const depositedValue = {
+        lovelace: BigInt(startLovelaceValue),
+        [asUnit(poolConfig.poolY)]: BigInt(startTokenB),
+        [asUnit(poolConfig.poolNft)]: nftEmission,
+        [asUnit(poolConfig.poolLq)]: lqEmission
+    }
+
+    console.log(`depositedValue: ${JSON.stringify(depositedValue, stringifyBigIntReviewer)}`)
+
+    console.log(`token box: ${JSON.stringify(boxWithToken, stringifyBigIntReviewer)}`);
+    console.log(`ada box: ${JSON.stringify(boxWithAda, stringifyBigIntReviewer)}`);
+
+    const tx = await lucid.newTx().collectFrom([boxWithToken!, boxWithAda!])
+        .attachMintingPolicy(nftMintingPolicy)
+        .mintAssets(mintingNftAssets, Data.to(0n))
+        .attachMintingPolicy(lqMintingPolicy)
+        .mintAssets(mintingLqAssets, Data.to(0n))
+        .payToContract(poolAddress, { inline: buildPoolDatum(poolConfig) }, depositedValue)
+        .complete();
+
+    console.log(`poolConfig: ${JSON.stringify(poolConfig)}`)
+
+    const txId = await (await tx.sign().complete()).submit();
+
+    console.log(`tx: ${txId}`)
+}
 
 async function buildPoolConfig(lucid: Lucid, xQty: number, xWeight: number, yQty: number, yWeight: number, nftCS: string, lqCS: string): Promise<PoolConfig> {
 

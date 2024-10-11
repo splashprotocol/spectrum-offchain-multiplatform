@@ -133,9 +133,9 @@ where
             } else if is_const_pool_redeem {
                 OrderType::ConstFn
             } else if is_royalty_pool_redeem {
-                OrderType::StableFn
-            } else {
                 OrderType::RoyaltyFn
+            } else {
+                OrderType::StableFn
             };
             let value = repr.value().clone();
             let conf = OnChainRedeemConfig::try_from_pd(repr.datum().clone()?.into_pd()?)?;
