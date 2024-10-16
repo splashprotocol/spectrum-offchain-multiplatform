@@ -505,7 +505,7 @@ where
                     transition.treasury_y.untag(),
                     transition.royalty_x.untag(),
                     transition.royalty_y.untag(),
-                    transition.royalty_nonce
+                    transition.royalty_nonce,
                 );
             }
         }
@@ -674,7 +674,7 @@ where
 impl<Ctx> BatchExec<ExecutionState, EffectPreview<DegenQuadraticPool>, Ctx>
     for Magnet<Make<DegenQuadraticPool, FinalizedTxOut>>
 where
-    Ctx: Has<DeployedValidator<{ DegenQuadraticPoolV1 as u8 }>>,
+    Ctx: Has<DeployedValidator<{ DegenQuadraticPoolV1 as u8 }>> + Has<OperatorCred>,
 {
     fn exec(
         self,
@@ -723,7 +723,7 @@ where
                 }
                 .to_plutus_data()
             }),
-            required_signers: vec![].into(),
+            required_signers: vec![Ed25519KeyHash::from(context.select::<OperatorCred>())].into(),
         };
 
         let consumed = Bundled(pool, FinalizedTxOut(consumed_out, in_ref));
