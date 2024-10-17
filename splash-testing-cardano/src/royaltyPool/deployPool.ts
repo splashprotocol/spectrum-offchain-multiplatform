@@ -63,10 +63,6 @@ export type RoyaltyPoolConfig = {
     royaltyNonce: bigint,
 }
 
-export function getDAOPolicy(nftCS: string): Promise<DAOInfo> {
-    return getDAO<DAOInfo>(new URL("http://88.99.59.114:8085/dao/"), nftCS, nftTNBase16);
-}
-
 function buildRoyaltyPoolDatum(lucid: Lucid, conf: RoyaltyPoolConfig): Datum {
     return Data.to({
         poolnft: conf.poolNft,

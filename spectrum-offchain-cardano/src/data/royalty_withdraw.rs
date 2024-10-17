@@ -1,7 +1,6 @@
 use crate::data::deposit::DepositOrderValidation;
 use crate::data::order::ClassicalOrder;
 use crate::data::pool::{CFMMPoolAction, Rx, Ry};
-use crate::data::royalty_pool::ROYALTY_DATUM_MAPPING;
 use crate::data::{OnChainOrderId, PoolId};
 use crate::deployment::ProtocolValidator::RoyaltyPoolV1RoyaltyWithdraw;
 use crate::deployment::{
@@ -11,11 +10,10 @@ use cml_chain::plutus::PlutusData;
 use cml_chain::transaction::TransactionOutput;
 use cml_core::serialization::{RawBytesEncoding, Serialize};
 use cml_crypto::{Ed25519KeyHash, Ed25519Signature, PublicKey};
-use log::trace;
 use spectrum_cardano_lib::plutus_data::{ConstrPlutusDataExtension, DatumExtension, PlutusDataExtension};
+use spectrum_cardano_lib::transaction::TransactionOutputExtension;
 use spectrum_cardano_lib::types::TryFromPData;
 use spectrum_cardano_lib::{AssetClass, OutputRef, TaggedAmount, TaggedAssetClass};
-use spectrum_cardano_lib::transaction::TransactionOutputExtension;
 use spectrum_offchain::data::Has;
 use spectrum_offchain::ledger::TryFromLedger;
 
@@ -28,7 +26,7 @@ pub struct RoyaltyWithdrawConfig {
     pub royalty_pub_key: String,
     pub fee: u64,
     pub signature: String,
-    pub raw_data_to_sign: Vec<u8>
+    pub raw_data_to_sign: Vec<u8>,
 }
 
 pub struct RoyaltyWithdrawDataDatumMapping {
@@ -40,14 +38,15 @@ pub struct RoyaltyWithdrawDataDatumMapping {
     pub fee: usize,
 }
 
-pub const ROYALTY_WITHDRAW_DATA_DATUM_MAPPING: RoyaltyWithdrawDataDatumMapping = RoyaltyWithdrawDataDatumMapping {
-    pool_nft: 0,
-    withdraw_royalty_x: 1,
-    withdraw_royalty_y: 2,
-    royalty_pub_key_hash: 3,
-    royalty_pub_key: 4,
-    fee: 5,
-};
+pub const ROYALTY_WITHDRAW_DATA_DATUM_MAPPING: RoyaltyWithdrawDataDatumMapping =
+    RoyaltyWithdrawDataDatumMapping {
+        pool_nft: 0,
+        withdraw_royalty_x: 1,
+        withdraw_royalty_y: 2,
+        royalty_pub_key_hash: 3,
+        royalty_pub_key: 4,
+        fee: 5,
+    };
 
 pub struct RoyaltyWithdrawDatumMapping {
     pub withdraw_data: usize,
@@ -62,19 +61,28 @@ pub const ROYALTY_WITHDRAW_DATUM_MAPPING: RoyaltyWithdrawDatumMapping = RoyaltyW
 impl TryFromPData for RoyaltyWithdrawConfig {
     fn try_from_pd(data: PlutusData) -> Option<Self> {
         let mut cpd = data.clone().into_constr_pd()?;
-        let data_to_sign = data.into_constr_pd()?.take_field(ROYALTY_WITHDRAW_DATUM_MAPPING.withdraw_data)?.to_cbor_bytes();
-        let mut royalty_data = cpd.take_field(ROYALTY_WITHDRAW_DATUM_MAPPING.withdraw_data)?.into_constr_pd()?;
+        let data_to_sign = data
+            .into_constr_pd()?
+            .take_field(ROYALTY_WITHDRAW_DATUM_MAPPING.withdraw_data)?
+            .to_cbor_bytes();
+        let mut royalty_data = cpd
+            .take_field(ROYALTY_WITHDRAW_DATUM_MAPPING.withdraw_data)?
+            .into_constr_pd()?;
         Some(Self {
             pool_nft: PoolId(
-                AssetClass::try_from_pd(royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.pool_nft)?)?
-                    .into_token()?,
+                AssetClass::try_from_pd(
+                    royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.pool_nft)?,
+                )?
+                .into_token()?,
             ),
             withdraw_royalty_x: TaggedAmount::new(
-                royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.withdraw_royalty_x)?
+                royalty_data
+                    .take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.withdraw_royalty_x)?
                     .into_u64()?,
             ),
             withdraw_royalty_y: TaggedAmount::new(
-                royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.withdraw_royalty_y)?
+                royalty_data
+                    .take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.withdraw_royalty_y)?
                     .into_u64()?,
             ),
             royalty_pub_key_hash: royalty_data
@@ -83,15 +91,18 @@ impl TryFromPData for RoyaltyWithdrawConfig {
                 .try_into()
                 .ok()?,
             royalty_pub_key: hex::encode(
-                royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.royalty_pub_key)?
+                royalty_data
+                    .take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.royalty_pub_key)?
                     .into_bytes()?,
             ),
-            fee: royalty_data.take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.fee)?.into_u64()?,
+            fee: royalty_data
+                .take_field(ROYALTY_WITHDRAW_DATA_DATUM_MAPPING.fee)?
+                .into_u64()?,
             signature: hex::encode(
                 cpd.take_field(ROYALTY_WITHDRAW_DATUM_MAPPING.signature)?
                     .into_bytes()?,
             ),
-            raw_data_to_sign: data_to_sign
+            raw_data_to_sign: data_to_sign,
         })
     }
 }
@@ -106,7 +117,7 @@ pub struct RoyaltyWithdraw {
     pub fee: u64,
     pub signature: Ed25519Signature,
     pub init_ada_value: u64,
-    pub raw_data_to_sign: Vec<u8>
+    pub raw_data_to_sign: Vec<u8>,
 }
 
 pub type OnChainRoyaltyWithdraw = ClassicalOrder<OnChainOrderId, RoyaltyWithdraw>;
@@ -146,7 +157,7 @@ where
                 fee: conf.fee,
                 signature: Ed25519Signature::from_raw_hex(conf.signature.as_str()).ok()?,
                 init_ada_value,
-                raw_data_to_sign: conf.raw_data_to_sign
+                raw_data_to_sign: conf.raw_data_to_sign,
             };
             if royalty_withdraw.withdraw_royalty_x.untag() != 1_300_000 {
                 return None;
