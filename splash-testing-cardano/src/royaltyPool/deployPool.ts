@@ -1,19 +1,24 @@
-import { PoolT2tExactValidateStablePoolTransitionT2tExact } from "../../plutus.ts";
-import { getCSAndSсript, getUtxoWithToken, getUtxoWithAda, stringifyBigIntReviewer } from "../balance/balancePool.ts";
+import { RoyaltyPoolPoolValidatePool} from "../../plutus.ts";
+import {
+    getCSAndSсript,
+    getUtxoWithToken,
+    getUtxoWithAda,
+    stringifyBigIntReviewer,
+    getDAOPolicy, DAOInfo, getDAO
+} from "../balance/balancePool.ts";
 import { getConfig } from "../config.ts";
 import { getLucid } from "../lucid.ts";
 import { Asset, BuiltValidators, asUnit } from "../types.ts";
 import { setupWallet } from "../wallet.ts";
 import { Unit, Datum, MintingPolicy, Data, Lucid} from "@lucid-evolution/lucid";
-import { encoder } from 'npm:js-encoding-utils';
+import { credentialToAddress } from "@lucid-evolution/utils";
 
-export const TokenB   = ""
-export const TokenBCS = "f6099832f9563e4cf59602b3351c3c5a8a7dda2d44575ef69b82cf8d"
+export const TokenB   = "7465737444"
+export const TokenBCS = "4b3459fd18a1dbabe207cd19c9951a9fac9f5c0f9c384e3d97efba26"
 
-const lqFee = 100n
-const treasuryFee = 0n
-
-const initAN2N = 3200n
+const lqFee = 95000n
+const treasuryFee = 10000n
+const royaltyFee = 10000n
 
 const startLovelaceValue = 100000000
 const startTokenB        = 100000000
@@ -26,43 +31,56 @@ const nftTNBase16 = `6e6674`;
 const lqTNBase16 = `6c71`;
 const encodedTestB = TokenB;// stringToHex(TokenB);
 
-export type StablePoolT2TConfig = {
+export type RoyaltyPoolConfig = {
     poolNft: Asset,
-    an2n: bigint,
     poolX: Asset,
     poolY: Asset,
-    multiplierX: bigint,
-    multiplierY: bigint,
     poolLq: Asset,
-    amplCoeffIsEditable: boolean,
     lpFeeIsEditable: boolean,
     lpFeeNum: bigint,
     protocolFeeNum: bigint,
+    royaltyFeeNum: bigint,
     treasuryX: bigint,
     treasuryY: bigint,
-    DAOPolicy: string,
+    royaltyX: bigint,
+    royaltyY: bigint,
+    DAOPolicy: Array<{
+        Inline: [
+                { VerificationKeyCredential: [string] } | {
+                ScriptCredential: [string];
+            },
+        ];
+    } | {
+        Pointer: {
+            slotNumber: bigint;
+            transactionIndex: bigint;
+            certificateIndex: bigint;
+        };
+    }>,
     // treasuryAddress - is contract
     treasuryAddress: string,
+    royaltyPubKeyHash256: string,
+    royaltyNonce: bigint,
 }
 
-function buildStablePoolT2TDatum(lucid: Lucid, conf: StablePoolT2TConfig): Datum {
+function buildRoyaltyPoolDatum(lucid: Lucid, conf: RoyaltyPoolConfig): Datum {
     return Data.to({
-        poolNft: conf.poolNft,
-        an2n: conf.an2n,
-        assetX: conf.poolX,
-        assetY: conf.poolY,
-        multiplierX: conf.multiplierX,
-        multiplierY: conf.multiplierY,
-        lpToken: conf.poolLq,
-        amplCoeffIsEditable: false,
-        lpFeeIsEditable: false,
-        lpFeeNum: conf.lpFeeNum,
-        protocolFeeNum: conf.protocolFeeNum,
-        daoStabeProxyWitness: conf.DAOPolicy,
+        poolnft: conf.poolNft,
+        poolx: conf.poolX,
+        poolY: conf.poolY,
+        poolLq: conf.poolLq,
+        feenum: conf.lpFeeNum,
+        treasuryFee: conf.protocolFeeNum,
+        royaltyFee: conf.royaltyFeeNum,
+        treasuryx: conf.treasuryX,
+        treasuryy: conf.treasuryY,
+        royaltyx: conf.royaltyX,
+        royaltyy: conf.royaltyY,
+        daoPolicy: conf.DAOPolicy,
         treasuryAddress: conf.treasuryAddress,
-        protocolFeesX: conf.treasuryX,
-        protocolFeesY: conf.treasuryY
-    }, PoolT2tExactValidateStablePoolTransitionT2tExact.inputDatum)
+        royaltyPubKeyHash_256: conf.royaltyPubKeyHash256,
+        royaltyNonce: conf.royaltyNonce
+    }, RoyaltyPoolPoolValidatePool.conf)
 }
 
 async function main() {
@@ -72,7 +90,7 @@ async function main() {
 
     const conf = await getConfig<BuiltValidators>();
 
-    const utxos = (await lucid.wallet.getUtxos());
+    const utxos = (await lucid.wallet().getUtxos());
 
     const boxWithToken = await getUtxoWithToken(utxos, encodedTestB);
     const boxWithAda   = await getUtxoWithAda(utxos)
@@ -87,10 +105,11 @@ async function main() {
 
     console.log(`nft info: ${nftInfo}`);
 
-    console.log(`address: ${await lucid.wallet.address()}`);
+    console.log(`address: ${await lucid.wallet().address()}`);
 
-    const poolAddress = lucid.utils.credentialToAddress(
-        { hash: conf.validators!.stablePoolT2T.hash, type: 'Script' },
+    const poolAddress = credentialToAddress(
+        "Preprod",
+        { hash: conf.validators!.royaltyPool.hash, type: 'Script' },
     );
 
     const nftMintingPolicy: MintingPolicy =
@@ -121,12 +140,11 @@ async function main() {
             [nftUnit]: nftEmission
         }
 
-    const poolConfig = {
+    const poolConfig: RoyaltyPoolConfig = {
         poolNft: {
             policy: nftInfo.policyId,
             name: nftTNBase16,
         },
-        an2n: initAN2N,
         poolX: {
             policy: "",
             name: "",
@@ -135,21 +153,25 @@ async function main() {
             policy: TokenBCS,
             name: encodedTestB,
         },
-        multiplierX: 1n,
-        multiplierY: 1n,
         poolLq: {
             policy: lqInfo.policyId,
             name: lqTNBase16,
         },
-        amplCoeffIsEditable: false,
-        lpFeeIsEditable: false,
+        lpFeeIsEditable: true,
         lpFeeNum: BigInt(lqFee),
         protocolFeeNum: BigInt(treasuryFee),
+        royaltyFeeNum: BigInt(royaltyFee),
         treasuryX: 0n,
         treasuryY: 0n,
-        DAOPolicy: "",
+        royaltyX: 0n,
+        royaltyY: 0n,
+        DAOPolicy: [{
+            Inline: [{ ScriptCredential: ["fb119a292524f162fe89d02bc9a2d0e0d8a1764f729aff3f99e4709b"] }]
+        }],
         // treasuryAddress - is contract
-        treasuryAddress: "",
+        treasuryAddress: conf.validators.royaltyPool.hash,
+        royaltyPubKeyHash256: "f0bb1b4a3ffa2e954def5ed167b3723103465f6ab85b19057ed79ca14e18406a",
+        royaltyNonce: 0n,
     }
 
     console.log(`mintingLqAssets: ${JSON.stringify(mintingLqAssets, stringifyBigIntReviewer)}`)
@@ -165,16 +187,21 @@ async function main() {
     }
 
     const tx = await lucid.newTx().collectFrom([boxWithToken!])
-        .attachMintingPolicy(nftMintingPolicy)
+        .attach.MintingPolicy(nftMintingPolicy)
         .mintAssets(mintingNftAssets, Data.to(0n))
-        .attachMintingPolicy(lqMintingPolicy)
+        .attach.MintingPolicy(lqMintingPolicy)
         .mintAssets(mintingLqAssets, Data.to(0n))
-        .payToContract(poolAddress, { inline: buildStablePoolT2TDatum(lucid, poolConfig) }, depositedValue)
-        .complete();
+        .pay.ToContract(
+            poolAddress,
+            { kind: "inline", value: buildRoyaltyPoolDatum(lucid, poolConfig) },
+            depositedValue
+        ).complete();
 
-    const txId = await (await tx.sign().complete()).submit();
+    const txId = await (await tx.sign.withWallet().complete()).submit();
 
     console.log(`tx: ${txId}`)
+
+    await lucid.awaitTx(txId);
 }
 
 main()

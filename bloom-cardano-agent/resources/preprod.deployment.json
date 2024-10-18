@@ -249,5 +249,65 @@
       "mem": 600000,
       "steps": 240000000
     }
+  },
+  "royaltyPool": {
+    "hash": "7542b373907bff623623dfc619b1ea92b4776b33e1f0607161577902",
+    "referenceUtxo": {
+      "txHash": "9376dfcf82520afc517df88a8cdf5eb3047864bf6594df8b14786dfb5e8264c3",
+      "outputIndex": 0
+    },
+    "cost": {
+      "mem": 600000,
+      "steps": 240000000
+    },
+    "marginalCost": {
+      "mem": 600000,
+      "steps": 240000000
+    }
+  },
+  "royaltyPoolDeposit": {
+    "hash": "5a04e05f6fd8b6e03c19619417abfec145b44f237d58bed30dc9f694",
+    "referenceUtxo": {
+      "txHash": "89c7b07aba74c48d9a8b3e8514dd297f984af48c9dfa226446a1a3693cacda70",
+      "outputIndex": 1
+    },
+    "cost": {
+      "mem": 600000,
+      "steps": 240000000
+    },
+    "marginalCost": {
+      "mem": 600000,
+      "steps": 240000000
+    }
+  },
+  "royaltyPoolRedeem": {
+    "hash": "fceb645fdc06550d62065bc0f95318e8dcd71e6a8c13c05f313b246d",
+    "referenceUtxo": {
+      "txHash": "89c7b07aba74c48d9a8b3e8514dd297f984af48c9dfa226446a1a3693cacda70",
+      "outputIndex": 2
+    },
+    "cost": {
+      "mem": 600000,
+      "steps": 240000000
+    },
+    "marginalCost": {
+      "mem": 600000,
+      "steps": 240000000
+    }
+  },
+  "royaltyPoolRoyaltyWithdraw": {
+    "hash": "cdeb3781ac2b0d6504a4de66093026997601362e4c1574f9a7a976c0",
+    "referenceUtxo": {
+      "txHash": "9376dfcf82520afc517df88a8cdf5eb3047864bf6594df8b14786dfb5e8264c3",
+      "outputIndex": 1
+    },
+    "cost": {
+      "mem": 800000,
+      "steps": 320000000
+    },
+    "marginalCost": {
+      "mem": 600000,
+      "steps": 240000000
+    }
   }
 }

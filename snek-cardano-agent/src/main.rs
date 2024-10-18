@@ -61,7 +61,7 @@ use spectrum_offchain::streaming::run_stream;
 use spectrum_offchain_cardano::collateral::pull_collateral;
 use spectrum_offchain_cardano::creds::operator_creds;
 use spectrum_offchain_cardano::data::degen_quadratic_pool::DegenQuadraticPool;
-use spectrum_offchain_cardano::data::order::ClassicalAMMOrder;
+use spectrum_offchain_cardano::data::order::Order;
 use spectrum_offchain_cardano::data::pair::PairId;
 use spectrum_offchain_cardano::deployment::DeployedValidators;
 use spectrum_offchain_cardano::prover::operator::OperatorProver;
@@ -255,10 +255,8 @@ async fn main() {
     if args.hot {
         let multi_book =
             MultiPair::new::<HotLB<AdhocOrder, DegenQuadraticPool, ExUnits>>(maker_context.clone(), "Book");
-        let multi_backlog = MultiPair::new::<HotPriorityBacklog<Bundled<ClassicalAMMOrder, FinalizedTxOut>>>(
-            maker_context,
-            "Backlog",
-        );
+        let multi_backlog =
+            MultiPair::new::<HotPriorityBacklog<Bundled<Order, FinalizedTxOut>>>(maker_context, "Backlog");
         let state_index = InMemoryStateIndex::with_tracing();
         let state_cache = InMemoryKvStore::with_tracing();
 
@@ -380,10 +378,8 @@ async fn main() {
     } else {
         let multi_book =
             MultiPair::new::<TLB<AdhocOrder, DegenQuadraticPool, ExUnits>>(maker_context.clone(), "Book");
-        let multi_backlog = MultiPair::new::<HotPriorityBacklog<Bundled<ClassicalAMMOrder, FinalizedTxOut>>>(
-            maker_context,
-            "Backlog",
-        );
+        let multi_backlog =
+            MultiPair::new::<HotPriorityBacklog<Bundled<Order, FinalizedTxOut>>>(maker_context, "Backlog");
         let state_index = InMemoryStateIndex::with_tracing();
         let state_cache = InMemoryKvStore::with_tracing();
 
@@ -525,7 +521,7 @@ fn merge_upstreams(
                     >,
                 >,
             >,
-            Channel<OrderUpdate<Bundled<ClassicalAMMOrder, FinalizedTxOut>, ClassicalAMMOrder>>,
+            Channel<OrderUpdate<Bundled<Order, FinalizedTxOut>, Order>>,
         >,
     ),
 > {

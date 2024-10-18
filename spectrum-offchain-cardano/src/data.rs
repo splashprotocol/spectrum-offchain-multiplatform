@@ -27,6 +27,8 @@ pub mod degen_quadratic_pool;
 pub mod fee_switch_bidirectional_fee;
 pub mod fee_switch_pool;
 pub mod pair;
+pub mod royalty_pool;
+mod royalty_withdraw;
 pub mod stable_order;
 pub mod stable_pool_t2t;
 

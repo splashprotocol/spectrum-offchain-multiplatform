@@ -6,7 +6,7 @@ use async_stream::stream;
 use cml_core::serialization::Serialize;
 use futures::channel::{mpsc, oneshot};
 use futures::{SinkExt, Stream, StreamExt};
-use log::{trace, warn};
+use log::{info, trace, warn};
 use pallas_network::miniprotocols::localtxsubmission;
 use pallas_network::miniprotocols::localtxsubmission::cardano_node_errors::{
     ApplyTxError, ConwayLedgerPredFailure, ConwayUtxoPredFailure, ConwayUtxowPredFailure, TxInput,

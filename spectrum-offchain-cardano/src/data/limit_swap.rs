@@ -81,6 +81,9 @@ where
             if real_base_input < min_base || ada_deposit < MIN_SAFE_LOVELACE_VALUE {
                 return None;
             }
+            if !conf.base.is_native() && !conf.quote.is_native() {
+                return None
+            }
             let swap = LimitSwap {
                 base_asset: conf.base,
                 base_amount: conf.base_amount,
