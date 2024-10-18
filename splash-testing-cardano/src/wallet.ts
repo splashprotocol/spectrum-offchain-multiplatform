@@ -4,11 +4,11 @@ import { mnemonicToEntropy } from "bip39"
 
 export async function setupWallet(lucid: Lucid) {
   const seed = await Deno.readTextFile('./seed.txt');
-  lucid.selectWallet.fromSeed(seed);
+  return lucid.selectWallet.fromSeed(seed);
 }
 
 export async function getPrivateKey() {
   const key = await Deno.readTextFile('./privateKey.txt');
-  CML.Bip32PrivateKey.from_bech32(key);
+  return CML.Bip32PrivateKey.from_bech32(key);
 }
 

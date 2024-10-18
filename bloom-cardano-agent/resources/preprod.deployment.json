@@ -269,7 +269,7 @@
     "hash": "5a04e05f6fd8b6e03c19619417abfec145b44f237d58bed30dc9f694",
     "referenceUtxo": {
       "txHash": "89c7b07aba74c48d9a8b3e8514dd297f984af48c9dfa226446a1a3693cacda70",
-      "outputIndex": 2
+      "outputIndex": 1
     },
     "cost": {
       "mem": 600000,
@@ -284,7 +284,7 @@
     "hash": "fceb645fdc06550d62065bc0f95318e8dcd71e6a8c13c05f313b246d",
     "referenceUtxo": {
       "txHash": "89c7b07aba74c48d9a8b3e8514dd297f984af48c9dfa226446a1a3693cacda70",
-      "outputIndex": 3
+      "outputIndex": 2
     },
     "cost": {
       "mem": 600000,
